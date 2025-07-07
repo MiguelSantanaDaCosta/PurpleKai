@@ -14,3 +14,21 @@ PurpleKai é uma linguagem de programação interpretada, orientada a objetos, c
 
 ⚡ Interoperabilidade - Interface com bibliotecas C++
 
+
+🤝 Como Contribuir
+Faça um fork do projeto
+
+Crie sua branch (git checkout -b feature/AmazingFeature)
+
+Commit suas mudanças (git commit -m 'Add some AmazingFeature')
+
+Push para a branch (git push origin feature/AmazingFeature)
+
+Abra um Pull Request
+
+
+📝 Licença
+Distribuído sob a licença MIT. Veja LICENSE para mais informações.
+
+🙌 Agradecimentos
+Total inpiração a Kailane Damasceno da Silva, minha melhor amiga e minha chama
