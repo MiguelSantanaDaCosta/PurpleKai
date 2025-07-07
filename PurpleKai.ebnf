@@ -1,0 +1,11 @@
+(*==============================)
+(*1.Estrutura Geral do Programa)
+(*==============================)
+Program ={declaration};
+
+declaration=
+    classDec1
+    |functionDec1
+    |varDec1
+    |statement
+;
