@@ -1,11 +1,216 @@
-(*==============================)
-(*1.Estrutura Geral do Programa)
-(*==============================)
-Program ={declaration};
 
+
+(*==============================)
+(*1.PROGRAMA PRINCIPAL)
+(*==============================*)
+  
+
+program = {declaration} EOF ;
 declaration=
     classDec1
     |functionDec1
     |varDec1
     |statement
+    |interface_dec1
 ;
+
+
+(*-----------------*)
+(*2.Classes*)
+class_dec1 =
+   "classe" IDENTIFIER
+   ["hérite" IDENTIFIER]
+   "{"{member_dec1}"}"
+;
+
+member_dec1 =
+  function_dec1
+  |variable_dec1
+;
+
+(*INTERFACES*)
+interface_dec1=
+  "interface"IDENTIFIER
+  "{"{function_proto}"}"
+;
+
+function_proto =
+  "fonction"IDENTIFIER"("[parameters]")"[":"type]
+;
+
+
+(*FUNÇÕES*)
+function_dec1 =
+  "function_dec1"IDENTIFIER
+  "("[parameters]")"
+  [":"type]
+  block
+;
+
+
+parameters = parameter {","parameter};
+parameter = IDENTIFIER[":"type];
+
+
+(*VARIAVEIS*)
+variable_dec1=
+  ("laiser"|"constant")
+  IDENTIFIER [":"type]
+  ["="expression]
+  ";"
+;
+
+
+(*TIPOS*)
+type =
+  "Int"
+  |"Float"
+  |"Bool"
+  |"String"
+  |"Void"
+  |IDENTIFIER (*Nome de classe*)
+  |"["type"]"(*Listas*)
+  |type "?"(*Tipo opcional*)
+;
+
+(*Comandos(statement)*)
+statement =
+  expr_stmt
+  |if_stmt
+  |for_stmt
+  |while_stmt
+  |return_stmt
+  |block
+  |break_stmt
+  |continue_stmt
+  |match_stmt
+;
+ 
+expr_stmt = expression";":
+
+if_stmt =
+  "si""("expression")"
+  statement
+  ["sinon"statement]
+;
+
+for_stmt =
+   "pour""("
+   (variable_dec1 | expr_stmt | ";")
+   expression? ";"
+   expression?
+   ")" statement
+;
+
+return_stmt =
+  "retourner"[expression]";"
+;
+
+break_stmt = "break" ";" ;
+continue_stmt = "continue" ";";
+
+block = "{"{declaration}"}" ;
+
+match_stmt =
+  "match" "(" expression ")"
+  "{"{match_case}"}"
+;
+
+match_case =
+   pattern "=>"(statement|expression";")
+;
+
+pattern =
+    literal
+    |IDENTIFIER
+    |"_"
+    |"["[ pattern{"," pattern }]"]"
+;
+
+
+(*EXPRESSÕES*)
+expression =
+   assigment
+;
+
+assigment =
+   (call ".")? IDENTIFIER "=" assigment
+   | ternary
+;
+
+ternary =
+   logic_o [ "?" expression ":" ternary]
+;
+
+logic_or =
+   logic_and{ "ou" logic_and}
+;
+
+logic_and =
+   equality{"et" equality}
+;
+
+equality =
+   comparison {("==" | "!=") comparison }
+;
+
+comparison =
+   term {("<" | "<=" |">" | ">=" ) term }
+;
+
+term =
+  factor {("+" | "-") factor}
+;
+
+unary =
+  ("!" | "-" | "+") unary
+  | call
+;
+
+call =
+   primary
+   ("("[ arguments]")"
+   | "." IDENTIFIER
+   | "[" expression "]"
+   )*
+;
+
+arguments =
+  expression {"," expression}
+;
+
+primary =
+  literal
+  |IDENTIFIER
+  |"(" expression ")"
+  |"[" [ expression {"," expression} ]"]"
+  |"nouveau" IDENTIFIER "(" [ arguments]")"
+  |"self"
+  |"super"
+;
+
+literal =
+    NUMBER
+    |FLOAT
+    |STRING
+    |"vrai"
+    |"faux"
+    |"nul"
+;
+
+(*TERMINAIS (TOKENS)*)
+IDENTIFIER = LETTER(LETTER | DIGIT | "_")*;
+NUMBER = DIGIT+ ;
+FLOAT = DIGIT+ "." DIGIT+ ;
+STRING = '"' (CHARACTER - '"')* ;
+
+LETTER = "a"-"z" |"A"-"Z" | "é" | "è" | "ê" ;
+DIGIT = "0"-"9" ;
+CHARACTER = ?  ? ;
+
+(*COMENTARIO*)
+COMMENT = "(*" (CHARACTER - "*")* "*)" ;
+LINE_COMMENT = "--" (CHARACTER - NEWLINE)* NEWLINE ;
+NEWLINE = "\r" "\n" ;
+WHITESPACE = (" "| "\t" | NEWLINE)+ ;
+
