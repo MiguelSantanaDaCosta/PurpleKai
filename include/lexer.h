@@ -78,97 +78,42 @@ enum class TokenType {
     FIN_FICHIER   // ≡ EOF
 };
 
+// ==============================================
+// ESTRUTURA DO TOKEN
+// ==============================================
 struct Token {
     TokenType type;
     std::string lexeme;
     int line;
 };
 
+// ==============================================
+// CLASSE LEXER
+// ==============================================
 class Lexer {
 public:
     explicit Lexer(const std::string& source);
     std::vector<Token> scanTokens();
-    
+
 private:
     const std::string& source_;
     std::vector<Token> tokens_;
     size_t start_ = 0;
     size_t current_ = 0;
     size_t line_ = 1;
-    
-    //métodos auxiliares
+
+    // Métodos auxiliares
     bool isAtEnd() const;
     char advance();
-    void addToken(TokenType type);
     bool match(char expected);
     char peek() const;
     char peekNext() const;
+    void addToken(TokenType type);
     void string();
     void number();
     void identifier();
-     
-        //mapa de PALAVRAS-CHAVE
-static const std::unordered_map<std::string, TokenType> Lexer::keywords = {
 
-      {"classe", TokenType::CLASSE},
-      {"fonction", TokenType::FONCTION},
-      {"laisser", TokenType::LAISSER},
-      {"constant", TokenType:: CONSTANTE},
-      {"si", TokenType::SI},
-      {"sinon", TokenType::SINON},
-      {"pour", TokenType::POUR},
-      {"tantque", TokenType::TANTQUE},
-      {"retourner", TokenType::RETOURNER},
-      {"nouveau", TokenType::NOUVEAU},
-      {"vrai", TokenType::VRAI},
-      {"faux", TokenType::FAUX},
-      {"nulle", TokenType::NULLE},
-      {"identifiant", TokenType::IDENTIFIANT},
-      {"nombre", TokenType::NOMBRE},
-      {"decimal", TokenType::DECIMAL},
-      {"chaine", TokenType::CHAINE},
-      {"plus", TokenType::PLUS},
-      {"moins", TokenType::MOINS},
-      {"fois", TokenType::FOIS},
-      {"divise", TokenType::DIVISE},
-      {"percent", TokenType::PERCENT},
-      {"egal", TokenType::EGAL},
-      {"egal_egal", TokenType::EGAL_EGAL},
-      {"different", TokenType::DIFFERENT},
-      {"inferieur", TokenType::INFERIEUR},
-      {"inf_egal", TokenType:: INF_EGAL},
-      {"superieur", TokenType::SUPERIEUR},
-      {"sup_egal", TokenType::SUP_EGAL},
-      {"et", TokenType::ET},
-      {"ou", TokenType::OU},
-      {"non", TokenType::NON},
-      {"left_paren", TokenType::LEFT_PAREN},
-      {"right_paren", TokenType::RIGHT_PAREN},
-      {"left_brace", TokenType::LEFT_BRACE},
-      {"right_brace", TokenType::RIGHT_BRACE},
-      {"chochet_ouvrant", TokenType::CHOCHET_OUVRANT},
-      {"chochet_fermant", TokenType::CHOCHET_FERMANT},
-      {"comma", TokenType::COMMA},
-      {"dot", TokenType::DOT},
-      {"semicolon", TokenType::SEMICOLON},
-      {"colon", TokenType::COLON},
-      {"fin_fichier", TokenType::FIN_FICHIER}
-
-;
-
-    
-     
-
-
-
-
-
-
-
-
-
-
-
-
- 
+    // Mapa de palavras-chave
+    static const std::unordered_map<std::string, TokenType> keywords;
 };
+
