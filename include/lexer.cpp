@@ -3,8 +3,10 @@
 
 #include <string>
 #include <vector>
+#include <cctype>
 
-class TokenType {
+
+enum class TokenType {
     // ==============================================
     // PALAVRAS-CHAVE (com equivalentes em C++)
     // ==============================================
@@ -76,7 +78,6 @@ class TokenType {
     FIN_FICHIER   // ≡ EOF
 };
 
-
 struct Token {
     TokenType type;
     std::string lexeme;
@@ -86,17 +87,88 @@ struct Token {
 class Lexer {
 public:
     explicit Lexer(const std::string& source);
-    std::vector<Token> tokenize();
+    std::vector<Token> scanTokens();
     
 private:
     const std::string& source_;
+    std::vector<Tokens> tokens_;
     size_t start_ = 0;
     size_t current_ = 0;
     size_t line_ = 1;
     
+    //métodos auxiliares
+    bool isAtEnd() const;
     char advance();
-    bool match(char expected);
     void addToken(TokenType type);
-  |    void scNOanToken();
-    // ... outros métodos auxiliares
+    bool match(char expected);
+    char peek() const;
+    char peekNext() const;
+    void string();
+    void number();
+    void identifier();
+     
+        //mapa de PALAVRAS-CHAVE
+static const std::unordered_map<std::string, TokenType> Lexer::keywords = {
+
+      {"classe", TokenType::CLASSE},
+      {"fonction", TokenType::FONCTION},
+      {"laiseser", TokenType::LAISSER},
+      {"constant", TokenType:: CONSTANT},
+      {"si", TokenType::SI},
+      {"sinon", TokenType::SINON},
+      {"pour", TokenType::POUR},
+      {"tantque", TokenType::TANTQUE},
+      {"retouner", TokenType::RETOURNER},
+      {"nouveau", TokenType::NOUVEAU},
+      {"vrai", TokenType::VRAI},
+      {"faux", TokenType::FAUX},
+      {"nulle", TokenType::NULLE},
+      {"identifiant", TokenType::IDENTIFIANT},
+      {"nombre", TokenType::NOMBRE},
+      {"decimal", TokenType::DECIMAL},
+      {"chaine", TokenType::CHAINE},
+      {"plus", TokenType::PLUS},
+      {"moins", TokenType::MOINS},
+      {"fois", TokenType::FOIS},
+      {"divise", TokenType::DIVISE},
+      {"percent", TokenType::PERCENT},
+      {"egal", TokenType::EGAL},
+      {"egal_egal", TokenType::EGAL_EGAL},
+      {"different", TokenType::DIFFERENT},
+      {"inferieur", TokenType::INFERIEUR},
+      {"inf_egal", TokenType:: INF_EGAL},
+      {"superiuer", TokenType::SUPERIUER},
+      {"sup_egal", TokenType::SUP_EGAL},
+      {"et", TokenType::ET},
+      {"ou", TokenType::OU},
+      {"non", TokenType::NON},
+      {"left_paren", TokenType::LEFT_PAREN},
+      {"right_paren", TokenType::RIGHT_PAREN},
+      {"left_brace", TokenType::LEFT_BRACE},
+      {"right_brace", TokenType::RIGHT_BRACE},
+      {"chochet_ouvrant", TokenType::CHOCHET_OUVRANT},
+      {"chochet_fermant", TokenType::CHOCHET_FERMANT},
+      {"comma", TokenType::COMMA},
+      {"dot", TokenType::DOT},
+      {"semicolon", TokenType::SEMICOLON},
+      {"colon", TokenType::COLON},
+      {"fin_fichier, TokenType::FIN_FICHIER"}
+
+;
+
+    
+     
+
+
+
+
+
+
+
+
+
+
+
+
+ 
 };
