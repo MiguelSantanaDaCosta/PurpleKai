@@ -1,3 +1,4 @@
+#include "lexer.cpp"
 #include "parser.h"
 #include "lexer.h"
 #include <cctype>
@@ -172,8 +173,79 @@ std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration(){
   
   //Parser métodos da classe 
   std::vector<std::unique_ptr<VariableExpr>
-
-
 }
 
+std::unique_ptr,FunctionDec1> Parser::parseFunctionDeclaration(){
+   Token name = consume(TokenType::IDENTIFIER, "Expect function name after 'fonction',.");
+   consume(TokenType::LEFT_PAREN, "Expect '(' after fnuction name.");
 
+   std::vector<Token> paramns;
+   if (!check(TokenType::RIGHT_PAREN)){
+     do{
+       if (params.size() >= 255){
+         reportError(peek(), "Can't have more than 255 parameters.");
+       }
+       Token param = consume(TokenType::IDENTIFIER, "Expect parameter name");
+       params.std::push_back(param);
+     }while (match(TokenType::COMMA));
+   }
+   consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters");
+
+   //Optonal return type
+   std::unique_ptr<Type> returnType = nullptr;
+   if (match(TokenType::COLON)){
+     returnType = parseType();
+   }
+    
+   //Parse functional body
+   consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
+   auto body = parseBlock();
+
+   return std::make_unique<FunctionDec1>(name, std::move(params), std::move(returnType), std::move(body));
+}
+
+ std::unique_ptr<Type> Parser::parseType() {
+    if (match(TokenType::INT)) return std::make_unique<Type>(TypeKind::INT);
+    if (match(TokenType::FLOAT)) return std::make_unique<Type>(TypeKind::FLOAT);
+    if (match(TokenType::BOOL)) return std::make_unique<Type>(TypeKind::BOOL);
+    if (match(TokenType::STRING)) return std::make_unique<Type>(TypeKind::STRING);
+    if (match(TokenType::VOID)) return std::make_unique<Type>(TypeKind::VOID);
+    
+    if (match(TokenType::IDENTIFIER)) {
+        return std::make_unique<Type>(TypeKind::CLASS, previous());
+    }
+    
+    if (match(TokenType::LEFT_BRACKET)) {
+        auto elementType = parseType();
+        consume(TokenType::RIGHT_BRACKET, "Expect ']' after list type.");
+        return std::make_unique<Type>(TypeKind::LIST, std::move(elementType));
+    }
+    
+    throw error(peek(), "Invalid type specification");
+}
+
+StmtPtr Parser::parseWhileStatement() {
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'tantque'.");
+    auto condition = parseExpression();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+    
+    auto body = parseStatement();
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
+StmtPtr Parser::parseReturnStatement() {
+    Token keyword = previous();
+    ExprPtr value = nullptr;
+    
+    if (!check(TokenType::SEMICOLON)) {
+        value = parseExpression();
+    }
+    
+    consume(TokenType::SEMICOLON, "Expect ';' after return value.");
+    return std::make_unique<ReturnStmt>(keyword, std::move(value));
+}
+
+void Parser::reportError(const Token& token, const std::string& message) {
+    std::cerr << "[Line " << token.line << "] Error: " << message << "\n";
+    hadError = true;
+}  
