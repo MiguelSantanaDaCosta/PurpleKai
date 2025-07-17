@@ -2,6 +2,7 @@
 #include <variant>
 #include <string>
 #include <vector>
+#include <tipe.h>
 #include "lexer.h"
 #include "parser.h"
 #include "environment.h"
