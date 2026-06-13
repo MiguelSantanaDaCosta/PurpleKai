@@ -158,21 +158,37 @@ Dec1Ptr Parser::parseDeclaration(){
 }
 
 
-/** Parsei declaraçaõ de classe 
- * Formato: "classe" ID [herite ID]{{método}}
+
+/** Parseia declaração de classe 
+ * Formato: "classe" ID [herite ID] "{" {método} "}"
  */
-std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration(){
-  Token name = consume(TokenType::IDENTIFIER, "Esperado nome da classe após 'classe'");
-  //Herança opcional
-  std::unique_ptr<VariableExpr> superclass = nullptr;
-  if ( match(TokenType::HERITE)){
-      Token superName = consume(TokenType::IDENTIFIER, "Esperado nome da superclasse após 'heritee'");
-      superclass = std::make_unique<VariableExpr>(superName);
-  }
-  consume(TokenType::LEFT_BRACE,"Esperado '{'antes do corpo da classe");
-  
-  //Parser métodos da classe 
-  std::vector<std::unique_ptr<VariableExpr>
+std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration() {
+    Token name = consume(TokenType::IDENTIFIER, "Esperado nome da classe após 'classe'");
+
+    // Herança opcional
+    std::unique_ptr<VariableExpr> superclass = nullptr;
+    if (match(TokenType::HERITE)) {
+        Token superName = consume(TokenType::IDENTIFIER, "Esperado nome da superclasse após 'herite'");
+        superclass = std::make_unique<VariableExpr>();
+        superclass->value = superName; 
+    }
+    
+    consume(TokenType::LEFT_BRACE, "Esperado '{' antes do corpo da classe");
+
+    // Parseia os métodos da classe
+    std::vector<std::unique_ptr<FunctionDec1>> methods;
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        methods.push_back(parseFunctionDeclaration());
+    }
+
+    consume(TokenType::RIGHT_BRACE, "Esperado '}' após o corpo da classe");
+
+    auto classDec = std::make_unique<ClassDec1>();
+    classDec->name = name;
+    classDec->superclass = std::move(superclass);
+    classDec->methods = std::move(methods);
+    
+    return classDec;
 }
 
 std::unique_ptr,FunctionDec1> Parser::parseFunctionDeclaration(){
@@ -248,4 +264,218 @@ StmtPtr Parser::parseReturnStatement() {
 void Parser::reportError(const Token& token, const std::string& message) {
     std::cerr << "[Line " << token.line << "] Error: " << message << "\n";
     hadError = true;
-}  
+} 
+
+//========================================================================
+// REGRAS DE EXPRESSÕES (COM PRECEDÊNCIA)
+//========================================================================
+
+ExprPtr Parser::parseExpression() {
+    return parseAssigment();
+}
+
+ExprPtr Parser::parseAssigment() {
+    ExprPtr expr = parseOr();
+
+    if (match(TokenType::EGAL)) {
+        Token equals = previous();
+        ExprPtr value = parseAssigment();
+
+        // Verifica se a expressão à esquerda é uma variável válida para receber atribuição
+        if (auto varExpr = dynamic_cast<VariableExpr*>(expr.get())) {
+            Token name = varExpr->value;
+            auto assignExpr = std::make_unique<AssignExpr>();
+            assignExpr->name = name;
+            assignExpr->valeu = std::move(value); 
+            return assignExpr;
+        }
+
+        error(equals, "Alvo de atribuição inválido.");
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseOr() {
+    ExprPtr expr = parseAnd();
+
+    while (match(TokenType::OU)) {
+        Token op = previous();
+        ExprPtr right = parseAnd();
+        auto logical = std::make_unique<LogicalExpr>();
+        logical->left = std::move(expr);
+        logical->op = op;
+        logical->right = std::move(right);
+        expr = std::move(logical);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseAnd() {
+    ExprPtr expr = parseEquality();
+
+    while (match(TokenType::ET)) {
+        Token op = previous();
+        ExprPtr right = parseEquality();
+        auto logical = std::make_unique<LogicalExpr>();
+        logical->left = std::move(expr);
+        logical->op = op;
+        logical->right = std::move(right);
+        expr = std::move(logical);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseEquality() {
+    ExprPtr expr = parseComparison();
+
+    while (match({TokenType::DIFFERENT, TokenType::EGAL_EGAL})) {
+        Token op = previous();
+        ExprPtr right = parseComparison();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseComparison() {
+    ExprPtr expr = parseTerm();
+
+    while (match({TokenType::SUPERIEUR, TokenType::SUP_EGAL, TokenType::INFERIEUR, TokenType::INF_EGAL})) {
+        Token op = previous();
+        ExprPtr right = parseTerm();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseTerm() {
+    ExprPtr expr = parseFactor();
+
+    while (match({TokenType::MOINS, TokenType::PLUS})) {
+        Token op = previous();
+        ExprPtr right = parseFactor();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseFactor() {
+    ExprPtr expr = parseUnary();
+
+    while (match({TokenType::DIVISE, TokenType::FOIS, TokenType::PERCENT})) {
+        Token op = previous();
+        ExprPtr right = parseUnary();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseUnary() {
+    if (match({TokenType::NON, TokenType::MOINS})) {
+        Token op = previous();
+        ExprPtr right = parseUnary();
+        // Nota: Assumindo que você criará um UnaryExpr no parser.h, já que ele foi mencionado 
+        // mas escrito com erro de digitação ("UnaryExpt") na declaração[cite: 115].
+        // Exemplo temporário caso falte a classe:
+        // auto unary = std::make_unique<UnaryExpr>();
+        // unary->op = op; unary->right = std::move(right); return unary;
+    }
+
+    return parseCall();
+}
+
+ExprPtr Parser::parseCall() {
+    ExprPtr expr = parsePrimary();
+
+    while (true) {
+        if (match(TokenType::LEFT_PAREN)) {
+            expr = finishCall(std::move(expr));
+        } else {
+            break;
+        }
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parsePrimary() {
+    if (match(TokenType::FAUX)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        // expr->value = false; // Dependendo de como você estrutura LiteralExpr
+        return expr;
+    }
+    if (match(TokenType::VRAI)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        return expr;
+    }
+    if (match(TokenType::NULLE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        return expr;
+    }
+
+    if (match({TokenType::NOMBRE, TokenType::DECIMAL, TokenType::CHAINE})) {
+        auto expr = std::make_unique<LiteralExpr>();
+        // Aqui você precisa extrair o valor do lexema e injetar no LiteralExpr
+        return expr;
+    }
+
+    if (match(TokenType::IDENTIFIANT)) {
+        auto expr = std::make_unique<VariableExpr>();
+        expr->value = previous();
+        return expr;
+    }
+
+    if (match(TokenType::LEFT_PAREN)) {
+        ExprPtr expr = parseExpression();
+        consume(TokenType::RIGHT_PAREN, "Esperado ')' após a expressão.");
+        auto group = std::make_unique<GroupingExpr>();
+        group->right = std::move(expr);
+        return group;
+    }
+
+    throw error(peek(), "Esperada uma expressão.");
+}
+
+// Método auxiliar para construir a chamada de função
+ExprPtr Parser::finishCall(ExprPtr callee) {
+    std::vector<ExprPtr> arguments;
+    if (!check(TokenType::RIGHT_PAREN)) {
+        do {
+            if (arguments.size() >= 255) {
+                error(peek(), "Não pode haver mais de 255 argumentos.");
+            }
+            arguments.push_back(parseExpression());
+        } while (match(TokenType::COMMA));
+    }
+
+    Token paren = consume(TokenType::RIGHT_PAREN, "Esperado ')' após argumentos.");
+    
+    auto callExpr = std::make_unique<CallExpr>();
+    callExpr->callee = std::move(callee);
+    callExpr->paren = paren;
+    callExpr->arguments = std::move(arguments);
+    
+    return callExpr;
+}

@@ -1,0 +1,1765 @@
+--- SUMÁRIO DE ARQUIVOS (13 arquivos) ---
+PurpleKai.ebnf
+README.md
+include/environment.h
+include/interpreter.h
+include/lexer.h
+include/parser.h
+include/type.h
+include/value.h
+src/environment.cpp
+src/interpreter.cpp
+src/lexer.cpp
+src/parser.cpp
+src/value.cpp
+-------------------------------------------
+===== PurpleKai.ebnf =====
+
+
+(*==============================)
+(*1.PROGRAMA PRINCIPAL)
+(*==============================*)
+  
+
+program = {declaration} EOF ;
+declaration=
+    classDec1
+    |functionDec1
+    |varDec1
+    |statement
+    |interface_dec1
+;
+
+
+(*-----------------*)
+(*2.Classes*)
+class_dec1 =
+   "classe" IDENTIFIER
+   ["hérite" IDENTIFIER]
+   "{"{member_dec1}"}"
+;
+
+member_dec1 =
+  function_dec1
+  |variable_dec1
+;
+
+(*INTERFACES*)
+interface_dec1=
+  "interface"IDENTIFIER
+  "{"{function_proto}"}"
+;
+
+function_proto =
+  "fonction"IDENTIFIER"("[parameters]")"[":"type]
+;
+
+
+(*FUNÇÕES*)
+function_dec1 =
+  "function_dec1"IDENTIFIER
+  "("[parameters]")"
+  [":"type]
+  block
+;
+
+
+parameters = parameter {","parameter};
+parameter = IDENTIFIER[":"type];
+
+
+(*VARIAVEIS*)
+variable_dec1=
+  ("laiser"|"constant")
+  IDENTIFIER [":"type]
+  ["="expression]
+  ";"
+;
+
+
+(*TIPOS*)
+type =
+  "Int"
+  |"Float"
+  |"Bool"
+  |"String"
+  |"Void"
+  |IDENTIFIER (*Nome de classe*)
+  |"["type"]"(*Listas*)
+  |type "?"(*Tipo opcional*)
+;
+
+(*Comandos(statement)*)
+statement =
+  expr_stmt
+  |if_stmt
+  |for_stmt
+  |while_stmt
+  |return_stmt
+  |block
+  |break_stmt
+  |continue_stmt
+  |match_stmt
+;
+ 
+expr_stmt = expression";":
+
+if_stmt =
+  "si""("expression")"
+  statement
+  ["sinon"statement]
+;
+
+for_stmt =
+   "pour""("
+   (variable_dec1 | expr_stmt | ";")
+   expression? ";"
+   expression?
+   ")" statement
+;
+
+return_stmt =
+  "retourner"[expression]";"
+;
+
+break_stmt = "break" ";" ;
+continue_stmt = "continue" ";";
+
+block = "{"{declaration}"}" ;
+
+match_stmt =
+  "match" "(" expression ")"
+  "{"{match_case}"}"
+;
+
+match_case =
+   pattern "=>"(statement|expression";")
+;
+
+pattern =
+    literal
+    |IDENTIFIER
+    |"_"
+    |"["[ pattern{"," pattern }]"]"
+;
+
+
+(*EXPRESSÕES*)
+expression =
+   assigment
+;
+
+assigment =
+   (call ".")? IDENTIFIER "=" assigment
+   | ternary
+;
+
+ternary =
+   logic_o [ "?" expression ":" ternary]
+;
+
+logic_or =
+   logic_and{ "ou" logic_and}
+;
+
+logic_and =
+   equality{"et" equality}
+;
+
+equality =
+   comparison {("==" | "!=") comparison }
+;
+
+comparison =
+   term {("<" | "<=" |">" | ">=" ) term }
+;
+
+term =
+  factor {("+" | "-") factor}
+;
+
+unary =
+  ("!" | "-" | "+") unary
+  | call
+;
+
+call =
+   primary
+   ("("[ arguments]")"
+   | "." IDENTIFIER
+   | "[" expression "]"
+   )*
+;
+
+arguments =
+  expression {"," expression}
+;
+
+primary =
+  literal
+  |IDENTIFIER
+  |"(" expression ")"
+  |"[" [ expression {"," expression} ]"]"
+  |"nouveau" IDENTIFIER "(" [ arguments]")"
+  |"self"
+  |"super"
+;
+
+literal =
+    NUMBER
+    |FLOAT
+    |STRING
+    |"vrai"
+    |"faux"
+    |"nul"
+;
+
+(*TERMINAIS (TOKENS)*)
+IDENTIFIER = LETTER(LETTER | DIGIT | "_")*;
+NUMBER = DIGIT+ ;
+FLOAT = DIGIT+ "." DIGIT+ ;
+STRING = '"' (CHARACTER - '"')* ;
+
+LETTER = "a"-"z" |"A"-"Z" | "é" | "è" | "ê" ;
+DIGIT = "0"-"9" ;
+CHARACTER = ?  ? ;
+
+(*COMENTARIO*)
+COMMENT = "(*" (CHARACTER - "*")* "*)" ;
+LINE_COMMENT = "--" (CHARACTER - NEWLINE)* NEWLINE ;
+NEWLINE = "\r" "\n" ;
+WHITESPACE = (" "| "\t" | NEWLINE)+ ;
+
+
+
+===== README.md =====
+PurpleKai - Linguagem de Programação em Francês
+![Logo](https://github.com/user-attachments/assets/de51d6ba-5b6a-46fb-afd9-f2cbf10a5dce)
+
+PurpleKai é uma linguagem de programação interpretada, orientada a objetos, com tipagem dinâmica e sintaxe em francês, projetada para ser acessível e expressiva.
+
+✨ Características Principais
+🎯 Sintaxe em francês - Mais natural para falantes do idioma
+
+🧩 Orientação a objetos - Classes, herança e polimorfismo
+
+🔄 Tipagem dinâmica - Flexível mas com verificação de tipos
+
+🧠 Coletor de lixo - Gerenciamento automático de memória
+
+⚡ Interoperabilidade - Interface com bibliotecas C++
+
+
+🤝 Como Contribuir
+Faça um fork do projeto
+
+Crie sua branch (git checkout -b feature/AmazingFeature)
+
+Commit suas mudanças (git commit -m 'Add some AmazingFeature')
+
+Push para a branch (git push origin feature/AmazingFeature)
+
+Abra um Pull Request
+
+
+📝 Licença
+Distribuído sob a licença MIT. Veja LICENSE para mais informações.
+
+🙌 Agradecimentos
+Total inpiração a Kailane Damasceno da Silva, minha melhor amiga e minha chama
+
+===== include/environment.h =====
+#pragma once
+#include <unordered_map>
+#include <string>
+#include <memory>
+#include "value.h"
+
+class Environment{
+  std::unordered_map<std::string, Value> values;
+  Environment* parent = nullptr;
+
+  public:
+    Environment(Environment* parent = nullptr);
+    void define(const std::string& name, Value value);
+    Value get(const Token& name);
+    void assign(const Token& name, Value value);
+};
+
+
+
+
+===== include/interpreter.h =====
+#pragma once
+#include "ast.h"
+#include "environment.h"
+#include "lexer.h"
+#include "value.h"
+#include <stdexcept>
+#include <vector>
+
+class Interpreter : public ExprVisitor, public StmtVisitor {
+  Environment globals;
+  Environment* environment = &globals;
+
+  public:
+    void Interpreter(const std::vector<Stmt*>& statements);
+    
+    //Visitantes
+    Value visitBitnaryExpr    (BinaryExpr* expr) override;
+    Value visitLiteralExpr  (LiteralExpr* expr) override;
+    Value visitUnaryExprvvvv  (UnaryExpr* expr) override;
+    Value visitGroupingExpr(GroupingExpr* expr) override;
+    Value visitVariableExpr(VariableExpr* expr) override;
+    Value visitAssignExpr(    AssignExpr* expr) override;
+    Value visitLogicalExpr(  LogicalExpr* expr) override;
+    Value visitCallExpr   (LogicalExpr*   expr) override;
+    Value visitGetExpr    (GetExpr*       expr) override;
+    Value visitSetExpr    (SetExpr*       expr) override;
+    Value visitThisExpr   (ThisExpr*      expr) override;
+    Value visitSuperExpr  (SuperExpr*     expr) override;
+
+   //Métodos de visita para comandos
+    void  visitExpressionStmt(ExpressionStmt*      stmt) override;
+    void  visitVarStmt       (VarStmt*             stmt) override;
+    void  visitBlockSrmt     (BlockStmt*           stmt) override;
+    void  visitIfStmt        (IfStmt*              stmt) override;
+    void  visitWhileStmt     (WhileStmt*           stmt) override;
+    void  visitForStmt       (ForStmt*             stmt) override;
+    void  visitReturnStmt    (ReturnStmt*          stmt) override;
+    void  visitFunctionStmt  (FunctionStmt*        stmt) override;
+    void  visitClassStmt     (ClassStmt*           stmt) override;
+
+
+  private:
+    Value evaluate(Expr*  expr);
+    void  execute (Stmt*  stmt);
+    void  executeBlock(const std::vector<Stmt*>& statements, Environment* env);
+    bool  isTruthy(const Value& value);
+    bool  isEqual(const Value& a, const Value& b);
+    void  checkNumberOperand(const Token& op, const Value& operand);
+    void  checkNumberOperand(const Token& op, const Value& left, const Value& right);
+    std::string stringify(const Value& value);
+
+    //Para controles de fluxo
+    Value returnValue;
+    bool inLoop = false;
+
+};
+
+// Implementação dos métodos principais
+void Interpreter::Interpret(const std::vector<Stmt*>& statements){
+  try {
+    for (Stmt* statement : statements){
+      execute(statement);
+    }
+  }catch (const RuntimeError& error){
+    std::cerr << error.what() << std::end1;
+  }
+}
+
+Value Interpreter::evaluate(Expŕ* expr){
+  return expr->accept(this);
+}
+
+void Interpreter::execute(Stmt* stmt){
+  stmt->accept(this);
+}
+
+void Interpreter::executeBlock(const std::vector<Stmt*>& statements, Environment* env){
+  Environment* previous = environment;
+  environment = env;
+
+  try {
+    for (Stmt* statement : statements){
+      execute(statement);
+    }
+  } catch (...){
+    environment = previous;
+    throw;
+  }
+
+  environment = prevous;
+}
+
+//Implementação dos métods de visita para expressões 
+Value Interpreter::visitBitnaryExpr(BinaryExpr* expr){
+  Value left  = evaluate(expr->left.get ());
+  Value right = evaluate(expr->right.get());
+  
+  switch (expr->op.type){
+    case TokenType::PLUS:
+      if (left.type == ValueType::NUMBER && right.type == ValueType::NUMBER){
+        return Value(left.data.stringValue + right.data.string.stringValue);
+
+      }
+        if (left.type == ValueType::STRING && right.type == ValueType::STRING){
+          return Value(left.data.intValue - right.data.intValue);
+               
+        }
+        throw RuntimeError(expr->op, "Operandos devem ser números ou strings");
+
+    case TokenType::MOINS:
+        checkNumberOperandS(expr->op, left, right);
+        return Value(left.data.intValue - right.data.intValue);
+    
+    case TokenType::FOIS:
+        checkNumberOperands(expr->op, left, right);
+        return Value(left.data.intValue * right.data.intValue);
+    
+    case TokenType::DIVISE:
+        checkNumberOperands(expr->op, left, right);
+        if (right.data.intValue == 0) throw RuntimeError(expr->op, "Divisão por zero");
+        return Value(left.data.intValue / right.data.intValue);     
+ 
+    case TokenType::EGAL_EGAL:
+        return Value(isEqual(left,right));
+
+    case TokenType::DIFFERENT:
+        return Value(!isEqual(left, right));
+
+    case  TokenType::INFERIEUR:
+        checkNumberOperands(expr->op, left, right);
+        return Value(!isEqual(left, right));
+
+    case TokenType::INF_EGAL:
+        checkNumberOperands(expr->op, left, right);
+        return Value(left.data.intValue <= right.data.intValue);
+
+    case TokenType::SUPERIEUR:
+        checkNumberOperands(expr->op, left, right);
+        return Value(left.data.intValue >= right.data.intValue);
+
+    default:
+        throw RuntimeError(expr->op, "Operador binario não implementado");
+
+
+  }
+    
+
+}
+
+Value Interpreter::visitUnaryExpr(UnaryExpr* expr){
+  Value right = evaluate(expr->right.get());
+
+  switch (expr->op.type){
+    case TokenType::MOINS:
+      checkNumberOperand(expr->op, right);
+      return Value(-right.data.intValue);
+
+    case TokenType::NON:
+      return Value(!isTruthy(right));
+
+    default:
+      throw RuntimeError(expŕ->op,"Operador unario não implementado");
+  }
+}
+
+Value Interpreter::visitLiteralExpr(LiteralExpr* expr){
+  return expr->value;
+}
+
+Value Interpreter::visitGroupingExpr(GroupingExpr* expr){
+  return evaluate(expr->expression.get());
+}
+
+Value Interpreter::visitAssignExpr(AssignExpr* expr){
+  Value value = evaluate(expr->value.get());
+  environment->assingn(expr->name, value);
+  return value;
+}
+
+Value Interpreter::visitLogicalExpr(LogicalExpr* expr) {
+    Value left = evaluate(expr->left.get());
+    
+    if (expr->op.type == TokenType::OU) {
+        if (isTruthy(left)) return left;
+    } else { // TokenType::ET
+        if (!isTruthy(left)) return left;
+    }
+    
+    return evaluate(expr->right.get());
+}
+
+// Implementação dos métodos de visita para comandos
+void Interpreter::visitExpressionStmt(ExpressionStmt* stmt) {
+    evaluate(stmt->expression.get());
+}
+
+void Interpreter::visitVarStmt(VarStmt* stmt) {
+    Value value;
+    if (stmt->initializer != nullptr) {
+        value = evaluate(stmt->initializer.get());
+    }
+    
+    environment->define(stmt->name.lexeme, value);
+}
+
+void Interpreter::visitBlockStmt(BlockStmt* stmt) {
+    Environment blockEnv(environment);
+    executeBlock(stmt->statements, &blockEnv);
+}
+
+void Interpreter::visitIfStmt(IfStmt* stmt) {
+    if (isTruthy(evaluate(stmt->condition.get()))) {
+        execute(stmt->thenBranch.get());
+    } else if (stmt->elseBranch != nullptr) {
+        execute(stmt->elseBranch.get());
+    }
+}
+
+void Interpreter::visitWhileStmt(WhileStmt* stmt) {
+    bool wasInLoop = inLoop;
+    inLoop = true;
+    
+    try {
+        while (isTruthy(evaluate(stmt->condition.get()))) {
+            execute(stmt->body.get());
+        }
+    } catch (...) {
+        inLoop = wasInLoop;
+        throw;
+    }
+    
+    inLoop = wasInLoop;
+}
+
+// Métodos utilitários
+bool Interpreter::isTruthy(const Value& value) {
+    if (value.type == ValueType::NIL) return false;
+    if (value.type == ValueType::BOOL) return value.data.boolValue;
+    return true;
+}
+
+bool Interpreter::isEqual(const Value& a, const Value& b) {
+    if (a.type != b.type) return false;
+    
+    switch (a.type) {
+        case ValueType::NIL: return true;
+        case ValueType::BOOL: return a.data.boolValue == b.data.boolValue;
+        case ValueType::NUMBER: return a.data.intValue == b.data.intValue;
+        case ValueType::STRING: return a.data.stringValue == b.data.stringValue;
+        default: return false; // Para tipos mais complexos
+    }
+}
+
+void Interpreter::checkNumberOperand(const Token& op, const Value& operand) {
+    if (operand.type == ValueType::NUMBER) return;
+    throw RuntimeError(op, "Operando deve ser um número");
+}
+
+void Interpreter::checkNumberOperands(const Token& op, const Value& left, const Value& right) {
+    if (left.type == ValueType::NUMBER && right.type == ValueType::NUMBER) return;
+    throw RuntimeError(op, "Operandos devem ser números");
+}
+
+std::string Interpreter::stringify(const Value& value) {
+    switch (value.type) {
+        case ValueType::NIL: return "nul";
+        case ValueType::BOOL: return value.data.boolValue ? "vrai" : "faux";
+        case ValueType::NUMBER: return std::to_string(value.data.intValue);
+        case ValueType::STRING: return value.data.stringValue;
+        default: return "[object]";
+    }
+}
+
+===== include/lexer.h =====
+// include/lexer.h
+#pragma once
+
+#include <string>
+#include <vector>
+#include <cctype>
+
+
+enum class TokenType {
+    // ==============================================
+    // PALAVRAS-CHAVE (com equivalentes em C++)
+    // ==============================================
+    CLASSE,       // ≡ class (C++)
+    FONCTION,     // ≡ (métodos em C++, sem equivalente exato para declaração)
+    LAISSER,      // ≡ auto (mas com tipagem dinâmica)
+    CONSTANTE,    // ≡ constexpr/const (dependendo do uso)
+    
+    // Controle de fluxo
+    SI,           // ≡ if
+    SINON,        // ≡ else
+    POUR,         // ≡ for (mais próximo do range-based for do C++)
+    TANTQUE,      // ≡ while
+    RETOURNER,    // ≡ return
+    
+    // Valores e alocação
+    NOUVEAU,      // ≡ new (mas com GC automático)
+    VRAI,         // ≡ true
+    FAUX,         // ≡ false
+    NULLE,        // ≡ nullptr (observação: "nulle" em francês é feminino)
+
+    // ==============================================
+    // IDENTIFICADORES E LITERAIS
+    // ==============================================
+    IDENTIFIANT,  // ≡ identificadores C++
+    NOMBRE,       // ≡ int/long (números inteiros)
+    DECIMAL,      // ≡ float/double
+    CHAINE,       // ≡ std::string
+
+    // ==============================================
+    // OPERADORES (mesmos símbolos, nomes em francês)
+    // ==============================================
+    PLUS,         // ≡ +
+    MOINS,        // ≡ -
+    FOIS,         // ≡ *
+    DIVISE,        // ≡ /
+    PERCENT,      // ≡ %
+    
+    // Operadores de comparação
+    EGAL,         // ≡ =
+    EGAL_EGAL,    // ≡ ==
+    DIFFERENT,    // ≡ !=
+    INFERIEUR,    // ≡ <
+    INF_EGAL,     // ≡ <=
+    SUPERIEUR,    // ≡ >
+    SUP_EGAL,    // ≡ >=
+    
+    // Operadores lógicos
+    ET,          // ≡ &&
+    OU,           // ≡ ||
+    NON,         // = !
+    // ==============================================
+    // DELIMITADORES (mesmo comportamento que C++)
+    // ==============================================
+    LEFT_PAREN,      // ≡ (
+    RIGHT_PAREN,     // ≡ )
+    LEFT_BRACE,      // ≡ {
+    RIGHT_BRACE,     // ≡ }
+    CHOCHET_OUVRANT, // = [
+    CHOCHET_FERMANT, // = ]
+    COMMA,           // ≡ ,
+    DOT,             // ≡ .
+    SEMICOLON,       // ≡ ;
+    COLON,           // ≡ :
+
+    // ==============================================
+    // CONTROLE DO PARSER
+    // ==============================================
+    FIN_FICHIER   // ≡ EOF
+};
+
+// ==============================================
+// ESTRUTURA DO TOKEN
+// ==============================================
+struct Token {
+    TokenType type;
+    std::string lexeme;
+    int line;
+};
+
+// ==============================================
+// CLASSE LEXER
+// ==============================================
+class Lexer {
+public:
+    explicit Lexer(const std::string& source);
+    std::vector<Token> scanTokens();
+
+private:
+    const std::string& source_;
+    std::vector<Token> tokens_;
+    size_t start_ = 0;
+    size_t current_ = 0;
+    size_t line_ = 1;
+
+    // Métodos auxiliares
+    bool isAtEnd() const;
+    char advance();
+    bool match(char expected);
+    char peek() const;
+    char peekNext() const;
+    void addToken(TokenType type);
+    void string();
+    void number();
+    void identifier();
+
+    // Mapa de palavras-chave
+    static const std::unordered_map<std::string, TokenType> keywords;
+};
+
+
+===== include/parser.h =====
+#include <vector>
+#include <memory>
+#include <stdexcept>
+#include <functional>
+#include <unordered_map>
+#include "lexer.h"
+
+//===============================================
+//FORWARD DECLARATIONS PARA  OS NÓS DA AST
+//================================================
+
+class Program;
+class ClassDec1;
+class FunctionDec1;
+class VarDec1;
+class BlockStmt;
+class Expr;
+class AssignExpr;
+class BinaryExpr;
+class LogicalExpr;
+class CallExpr;
+class VariableExpr;
+class LiteralExpr;
+class GroupingExpr;
+class UnaryExpt;
+class GetExpr;
+class SetExpr;
+class ThisExpr;
+class SuperExpr;
+
+//=============================
+//DEFINIÇÕES DE TIPOS 
+//=============================
+using ExprPtr = std::unique_ptr<Expr>;
+using StmtPtr = std::unique_ptr< class Stmt>;
+using Dec1Ptr = std::unique_ptr<class Declaration>;
+
+//=========================
+//CLASSE PARA DECLARAÇÕES
+//=========================
+class Declaration {
+public:
+   virtual ~Declaration() = default;
+};
+
+//====================================
+//CLASSE PARA COMANDOS (STATEMENTS)
+//====================================
+class Stmt {
+  public:
+    virtual ~Stmt() = default;
+};
+
+//===================================
+//CLASSE PARA EXPRESSÕES
+//===================================
+class Expr {
+  public:
+    virtual ~Expr() = default;
+};
+
+//===================================
+//DEFINIÇÕES DA CLASSE PARSER
+//===================================
+class Parser {
+  public:
+    /**Construtor: Recebe os tokens gerados pelo lexer
+     * @param tokens Lista de tokens para análise */
+    explicit Parser(const std::vector<Token>& tokens);
+    /**Metodo principal: Imicia o processo de parsing
+     * @return AST cmopleta do programa */ 
+    std::unique_ptr<Program> parse();
+}
+
+   private:
+  //ESTADO INTERMO
+  const std::vector<Token>& tokens_;//referencia aos tokens
+  size_t current_ = 0;              //Indice do token atual
+
+  //METODO AUXILIARES DE CONTROLE
+  
+  //verifica se chegou ao fim dos tokens
+  bool isAtEnd() const;
+
+  //Avança para o proximo token e retorna o anterior
+  const Token& peek() const;
+
+  //retorna o token anteriormente consumido
+  const Token& previous() const;
+
+  /**Verifica se o token atuak corresponde ao tipo esperado
+  @param type Tipo de token a verificar
+  @return true se corresponde, false caso contrario
+  */ 
+  bool check(TokenType type) const;
+  /**Verifica e consome se o token corresponder ao tipo
+  @paaram type Tipo de token esperado
+  @return true se corresponde e foi consumido
+  */ //    
+  
+  bool match(TokenType type);
+  /** Verifica e consome se o token corresponder ao tipo
+   * @param type Tipo de token esperado
+   * @return true se corresponde e foi consumido
+   */
+  bool match(const std::initializer_list<TokenType>& types);
+  
+  /**
+   * Consome obrigatoriamente um token do tipo especificado
+   * @param type Tipo esperado do token
+   * @param message Mensagem de erro se não corresponder
+   * @return Token consumido
+   * @throws ParseError se o tipo não corresponder
+   */
+  const Token& consume(TokenType type, const std::string& message);
+  /**
+   * Verifica se o token atual é de um tipo especifico sem comsumir
+   * @param type Tipo a verificar
+   * @param message Mensagem de erro se não corresponder
+   * @return Token verificado
+   */
+
+  const Token& expect(TokenType type, const std::string& message) const;
+
+  //===================================================================
+  //MANIPULAÇÃO DE ERROS
+  //===================================================================
+
+  /**
+   * cria um erro de parsing
+   * @param token Token onde ocorreu o erro
+   * @param message Descrição do erro
+   * @return Exceção de erro
+   *///
+
+  ParseError error(const Token& token, const std::string& message) const;
+
+  /**
+   * Sincronoza após um erro - avança até um ponto seguro
+   */
+  void synchronize();
+
+  //===================================================================
+  //REGRAS DE DECLARAÇÕES (TOP-LEVEL)
+  //===================================================================
+  /**Parseia uma declaração ( classe, funçaõ, variavel, etc.)*///bin/X
+
+  DeclPtr parseDeclaration();
+
+  //Parseia declaração de classe 
+  //formato: "classe" IDENTIFIER ["hérite" IDENTIFIER] "{" { member} "}"
+
+  std::unique_ptr<ClassDec1> parseClasseDeclaration();
+  /** Parsei declaração de função 
+   *  Formato: ("laisser") | "constant") IDENTIFIER ["="] expression ] ";"
+   * /bin/X
+   *
+   */
+  std:: unique_ptr<VarDec1> parseVarDeclaration();
+
+  //=====================================================================
+  //REGRAS DE COMANDOS(STATEMENTS)
+  //=====================================================================
+  /** Parseia um comando
+   * 
+   */
+  StmtPtr parseStatement();
+  //parseia comando de expressão (expressão seguida de";")
+  StmtPtr parseExprStmt();
+  //parseia bloco de código: "{"{declaration } "}"
+  std::unique_ptr<BlockStmt> parseBlock();
+  //Parseia comando condicional (if)
+  //Formato :"si" "(" expression")" statement ["sinon" statement]
+  
+
+  StmtPtr parseIfStatement();
+  /**Parseia loop for
+   *
+   * Formato: "pour" "(" (varDec1 | exprStmt | ";")
+   *             expression? ";"
+   *             expression? ")" statement
+   *
+   */
+  StmtPtr parseForStatement();
+  /**
+   * Parsia loop while
+   * Formato: "tantque""(" expression ")" statement
+   */
+  StmtPtr parseWhileStatement();
+  /**Parseia comando de retorno
+   * Formato: "retourner" [espression] ";"
+   */
+  StmtPtr parseReturnStatement();
+
+//========================================================================
+//REGRAS DE EXPRESSÕES ( COM PRECEDENCIA)
+//========================================================================
+/** Ponto de entrada para expressões 
+ */
+  ExprPtr parseExpression();
+  //Parseia atribuição ( menor precedência)
+  //
+  //
+  ExprPtr parseAssigment();
+
+  //Parseia operador lógico OR(||)
+
+  ExprPtr parseOr();
+ /** Parseia operador lógico AND(&&)
+  */
+  ExprPtr parseAnd();
+  /** Parseia operador de igualdade(==, !=)
+   */
+  ExprPtr parseEquality();
+  /** Parseia operadores de comparação (<,>,<=,>=)
+    */  
+  ExprPtr parseComparison();
+  /** Parseia operadores de termo (+,-)
+   */
+
+  ExprPtr parseTerm();
+  /** Parseia operadores de factor(*,/)  
+  */
+ ExprPtr parseFactor();
+ /** Parseia operadores unários (!, -)
+  */
+ ExprPtr parseUnary();
+ /** Parseia chamadas, acesso a membros, etc.
+  */
+ExprPtr parseCall();
+/** Parseia expressões primarias (literais, variaveis, agrupamentos)
+ */
+ExprPtr parsePrimary();
+/**
+ * Parseia lista de argumentos para chamadas
+ * @return Vector de expressões argumento
+ */
+std::vector<ExprPtr> parseArgumenyts();
+/**
+ * Parseia lista de parâmetros para funções 
+ * @return Vector de tokens identificador
+ */ 
+std::vector<Token> parseParameters();
+};
+
+//================================================================
+//DEFINIÇÕES DETALHADAS DOS NÓS DA AST
+//================================================================
+class Program : public Declaration {
+ public:
+   std::vector<Dec1Ptr> declaration;
+
+};
+
+class ClassDec1 : public Declaration {
+ public:
+   Token name;
+   std::unique_ptr<VariableExpr> superclass; //Pode ser nulo
+   std::vector<std::unique_ptr<FunctionDec1>> methods;
+};
+
+class FunctionDec1 : public Declaration {
+  public:
+    Token name;
+    std::vector<Token> params;
+    std:: unique_ptr<BlockStmt> body;
+};
+
+class VarDec1 : public Declaration {
+  public:
+    Token name;
+    ExprPtr initializer;
+    bool isConst;
+};
+
+class BlockStmt : public Stmt {
+  public:
+    ExprPtr condition;
+    StmtPtr thenBranch;
+    StmtPtr elseBranch;// pode ser nulo
+};
+
+class ExprStmt : public Stmt {
+  public:
+    ExprPtr expression;
+};
+
+class IfStmt : public Stmt {
+  public:
+    ExprPtr condition;
+    Stmt thenBranch;
+    StmtPtr elseBranch;//pode ser nulo
+};
+
+class ForStmt : public Stmt {
+  public:
+    StmtPtr initializer; //Pode ser nulo (VarDec1 ou ExprStmt)
+    ExprPtr condition;   //Podes ser nulo
+    ExprPtr increment;   //Pode ser nulo
+    StmtPtr body;
+}
+
+class WhileStmt : public Stmt {
+  public:
+    ExprPtr condition;
+    StmtPtr body;
+};
+
+class ReturnStmt : public Stmt {
+  public:
+    Token keyword;
+    ExprPtr value;//pode ser nulo
+};
+
+//=============================================================
+//EXPRESSÕES 
+//=============================================================
+class AssignExpr : public Expr {
+  public:
+    Token name;
+    ExprPtr valeu;
+
+};
+
+class BinaryExpr : public Expr {
+  public:
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+};
+
+class LogicalExpr : public Expr {
+  public:
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+};
+
+class CallExpr : public Expr {
+  public: 
+    ExprPtr callee;
+    Token paren;// Token do parêntese de fechamento
+    std::vector<ExprPtr> arguments;
+};
+
+class VariableExpr : public Expr {
+  public:
+    Token value;
+};
+
+class LiteralExpr : public Expr {
+  public:
+    ExprPtr expression;
+};
+
+class GroupingExpr : public Expr {
+  public:
+    Token op;
+    ExprPtr right;
+};
+
+class GetExpr : public Expr {
+  public:
+    ExprPtr objecct;
+    Token name;
+};
+
+class SetExpr : public Expr {
+  public:
+    ExprPtr object;
+    Token name;
+    ExprPtr valeu;
+};
+
+class ThisExpr : public Expr {
+  public:
+    Token keyword;
+};
+
+class SuperExpr : public Expr {
+  public:
+    Token keyword;
+    Token method;
+};
+
+//============================================
+//EXCEÇÕES 
+//===========================================
+class Parseerror : public std::runtime_error{
+  public:
+    Parseerror(const Token& token, const std::string& message)
+      : std::runtime_error(message), token(token){}
+
+    const Token token;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+===== include/type.h =====
+#pragma once
+#include "lexer.h"
+#include <string>
+
+enum class TypeKind {
+  INT,
+  FLOAT,
+  BOOL,
+  STRING,
+  VOID,
+  CLASS,
+  LIST,
+  OPTIONAL
+};
+
+class Type {
+public:
+  TypeKinf kind;
+  Token className;//For CLASS types
+  std::unique_ptr<Type> elementType;//For LIST OPTIINAL
+  
+  //Constructor for simple Type
+  explicit Type(TypeKind kind) : kind(kind){}
+
+  //Constructor for class types
+  Type(TypeKind kind, Token className)
+    : kind(kind), className(className){}
+   
+  //Constructor for composite type 
+  Type(TypeKind kind, std::uniqye_ptr<Type elementType)
+    : kind(kind), elementType(std::move(elementType)){}
+
+  std::string toString() const;
+
+};
+  
+
+===== include/value.h =====
+#pragma once
+#include <variant>
+#include <string>
+#include <vector>
+#include <tipe.h>
+#include "lexer.h"
+#include "parser.h"
+#include "environment.h"
+#include "interpreter.h"
+#include "lexer.cpp"
+#include "parser.cpp"
+#include "environment.cpp"
+#include "interpreter.cpp"
+
+
+enum class ValueType {NIL, BOOL, NUMBER, FLOAT, STRING, FUNCTION, NATIVE_FUNCTION} ;
+
+class Function;
+class Environment;
+
+using ValueBase = std::variant<
+   std::monostate,                                //NIL
+   bool,                                          //BOOL
+   int,                                           //NUMBER
+   std::string,                                   //FLOAT
+   Function*,                                     //STRING
+   std::function<Value(const std::vector<Valeu>&)>//NATIVE_FUNCTION
+>;                   
+
+struct Value {
+  ValeuType type;
+  ValueBase data;
+
+  Value();
+  Value(bool b);
+  Value(int i);
+  Value(double d);
+  Value(const std::string& s);
+
+  std::string toString() const;
+
+};
+
+class Function {
+public:
+  std::vector<Token> params;
+  std::unique_ptr<BlockStmt> body;
+  Environment* closure;
+};
+
+
+===== src/environment.cpp =====
+// include/environment.h
+#pragma once
+
+#include <unordered_map>
+#include "value.h"
+
+class Environment {
+public:
+    explicit Environment(std::shared_ptr<Environment> enclosing = nullptr);
+    
+    void define(const std::string& name, Value value);
+    Value get(const Token& name);
+    void assign(const Token& name, Value value);
+    
+private:
+    std::unordered_map<std::string, Value> values_;
+    std::shared_ptr<Environment> enclosing_;
+};
+
+===== src/interpreter.cpp =====
+// include/interpreter.h
+#pragma once
+
+#include "ast.h"
+#include "environment.h"
+
+class Interpreter {
+public:
+    Interpreter();
+    void interpret(const std::unique_ptr<Program>& program);
+    
+private:
+    std::shared_ptr<Environment> globals_;
+    std::shared_ptr<Environment> environment_;
+    
+    Value evaluate(const std::unique_ptr<Expr>& expr);
+    void execute(const std::unique_ptr<Statement>& stmt);
+    void executeBlock(const std::vector<std::unique_ptr<Statement>>& statements,
+                     std::shared_ptr<Environment> env);
+    // ... outros métodos de avaliação
+};
+
+===== src/lexer.cpp =====
+#include "lexer.h"
+#include <unordered_map>
+#include <iostream>
+
+Lexer::Lexer(const std::string& source) : source_(source) {}
+
+std::vector<Token> Lexer::scanTokens() {
+    while (!isAtEnd()) {
+        start_ = current_;
+        char c = advance();
+
+        if (std::isspace(c)) {
+            if (c == '\n') line_++;
+            continue;
+        }
+
+        if (std::isalpha(c) || c == '_') {
+            identifier();
+        } else if (std::isdigit(c)) {
+            number();
+        } else {
+            switch (c) {
+                case '+': addToken(TokenType::PLUS); break;
+                case '-': addToken(TokenType::MOINS); break;
+                case '*': addToken(TokenType::FOIS); break;
+                case '/': addToken(TokenType::DIVISE); break;
+                case '%': addToken(TokenType::PERCENT); break;
+                case '=':
+                    addToken(match('=') ? TokenType::EGAL_EGAL : TokenType::EGAL);
+                    break;
+                case '!':
+                    addToken(match('=') ? TokenType::DIFFERENT : TokenType::NON);
+                    break;
+                case '<':
+                    addToken(match('=') ? TokenType::INF_EGAL : TokenType::INFERIEUR);
+                    break;
+                case '>':
+                    addToken(match('=') ? TokenType::SUP_EGAL : TokenType::SUPERIUER);
+                    break;
+                case '&':
+                    if (match('&')) addToken(TokenType::ET);
+                    break;
+                case '|':
+                    if (match('|')) addToken(TokenType::OU);
+                    break;
+                case '(': addToken(TokenType::LEFT_PAREN); break;
+                case ')': addToken(TokenType::RIGHT_PAREN); break;
+                case '{': addToken(TokenType::LEFT_BRACE); break;
+                case '}': addToken(TokenType::RIGHT_BRACE); break;
+                case '[': addToken(TokenType::CHOCHET_OUVRANT); break;
+                case ']': addToken(TokenType::CHOCHET_FERMANT); break;
+                case ',': addToken(TokenType::COMMA); break;
+                case '.': addToken(TokenType::DOT); break;
+                case ';': addToken(TokenType::SEMICOLON); break;
+                case ':': addToken(TokenType::COLON); break;
+                case '"': string(); break;
+
+                default:
+                    std::cerr << "Caractere inesperado na linha " << line_ << ": '" << c << "'\n";
+                    break;
+            }
+        }
+    }
+
+    tokens_.push_back({TokenType::FIN_FICHIER, "", static_cast<int>(line_)});
+    return tokens_;
+}
+
+bool Lexer::isAtEnd() const {
+    return current_ >= source_.size();
+}
+
+char Lexer::advance() {
+    return source_[current_++];
+}
+
+bool Lexer::match(char expected) {
+    if (isAtEnd() || source_[current_] != expected) return false;
+    current_++;
+    return true;
+}
+
+char Lexer::peek() const {
+    if (isAtEnd()) return '\0';
+    return source_[current_];
+}
+
+char Lexer::peekNext() const {
+    if (current_ + 1 >= source_.size()) return '\0';
+    return source_[current_ + 1];
+}
+
+void Lexer::addToken(TokenType type) {
+    std::string text = source_.substr(start_, current_ - start_);
+    tokens_.push_back({type, text, static_cast<int>(line_)});
+}
+
+void Lexer::string() {
+    while (!isAtEnd() && peek() != '"') {
+        if (peek() == '\n') line_++;
+        advance();
+    }
+
+    if (isAtEnd()) {
+        std::cerr << "Erro: string não terminada na linha " << line_ << "\n";
+        return;
+    }
+
+    advance(); // fecha "
+    std::string value = source_.substr(start_ + 1, current_ - start_ - 2);
+    tokens_.push_back({TokenType::CHAINE, value, static_cast<int>(line_)});
+}
+
+void Lexer::number() {
+    while (std::isdigit(peek())) advance();
+
+    if (peek() == '.' && std::isdigit(peekNext())) {
+        advance();
+        while (std::isdigit(peek())) advance();
+        addToken(TokenType::DECIMAL);
+    } else {
+        addToken(TokenType::NOMBRE);
+    }
+}
+
+void Lexer::identifier() {
+    while (std::isalnum(peek()) || peek() == '_') advance();
+    std::string text = source_.substr(start_, current_ - start_);
+
+    auto it = keywords.find(text);
+    TokenType type = (it != keywords.end()) ? it->second : TokenType::IDENTIFIANT;
+    tokens_.push_back({type, text, static_cast<int>(line_)});
+}
+
+
+
+
+//mapa de PALAVRAS-CHAVE
+static const std::unordered_map<std::string, TokenType> Lexer::keywords ={
+
+      {"classe", TokenType::CLASSE},
+      {"fonction", TokenType::FONCTION},
+      {"laisser", TokenType::LAISSER},
+      {"constant", TokenType:: CONSTANTE},
+      {"si", TokenType::SI},
+      {"sinon", TokenType::SINON},
+      {"pour", TokenType::POUR},
+      {"tantque", TokenType::TANTQUE},
+      {"retourner", TokenType::RETOURNER},
+      {"nouveau", TokenType::NOUVEAU},
+      {"vrai", TokenType::VRAI},
+      {"faux", TokenType::FAUX},
+      {"nulle", TokenType::NULLE},
+      {"identifiant", TokenType::IDENTIFIANT},
+      {"nombre", TokenType::NOMBRE},
+      {"decimal", TokenType::DECIMAL},
+      {"chaine", TokenType::CHAINE},
+      {"plus", TokenType::PLUS},
+      {"moins", TokenType::MOINS},
+      {"fois", TokenType::FOIS},
+      {"divise", TokenType::DIVISE},
+      {"percent", TokenType::PERCENT},
+      {"egal", TokenType::EGAL},
+      {"egal_egal", TokenType::EGAL_EGAL},
+      {"different", TokenType::DIFFERENT},
+      {"inferieur", TokenType::INFERIEUR},
+      {"inf_egal", TokenType:: INF_EGAL},
+      {"superieur", TokenType::SUPERIEUR},
+      {"sup_egal", TokenType::SUP_EGAL},
+      {"et", TokenType::ET},
+      {"ou", TokenType::OU},
+      {"non", TokenType::NON},
+      {"left_paren", TokenType::LEFT_PAREN},
+      {"right_paren", TokenType::RIGHT_PAREN},
+      {"left_brace", TokenType::LEFT_BRACE},
+      {"right_brace", TokenType::RIGHT_BRACE},
+      {"chochet_ouvrant", TokenType::CHOCHET_OUVRANT},
+      {"chochet_fermant", TokenType::CHOCHET_FERMANT},
+      {"comma", TokenType::COMMA},
+      {"dot", TokenType::DOT},
+      {"semicolon", TokenType::SEMICOLON},
+      {"colon", TokenType::COLON},
+      {"fin_fichier", TokenType::FIN_FICHIER}
+};
+
+    
+     
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+};
+
+
+===== src/parser.cpp =====
+#include "lexer.cpp"
+#include "parser.h"
+#include "lexer.h"
+#include <cctype>
+#include <algorithm>
+#include <initializer_list>
+#include <iostream>
+
+//=================================================
+//IMPLEMENTAÇÃO DOS METODOS AUXILIARES
+//=================================================
+Parser::Parser(const std::vector<Token& tokens)
+  : tokens_(tokens){}
+
+
+  /** Verifica se chegamos ao final da lista de tokens
+   * @return true se o token atual é END_OF_FILE
+   */
+  bool Parser::isAtEnd() const {
+    return peek().type == TokenType::END_OF_FILE;
+  }
+
+/** Avança para o proximo token e retorna o token anterior
+ * @return Token consumido
+ */ 
+
+const Token& Parser::advance(){
+  if(!asAtEnd()) current_++;
+  return previous();
+}
+
+/** Obtém o token atual sem consumi-lo (loookhead)
+ * @return Token atual
+ */
+const Token& Parser::peek() const {
+  return tokens_[current_ -1];
+}
+
+/** Verifica e consume o token se for do tipo especificado
+ * @param type Tipo de token esperado
+ * @return true se o token foi consumido
+ */
+
+bool Parser::match(TokenType type){
+  if (check(type)){
+    advance();
+    return true;
+  }
+  return false;
+}
+
+/** Verifivca e consome se qualquer um dos tipos corresponder
+ * @param types Lista de tipos possiveis
+ * @return true se algumn token foi consumido
+ */
+
+bool Parser::match(const std::initializer_list<TokenType>& types){
+  for (TokenType type : types){
+    if (check(type)){
+      advance();
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Consume obrigatoriamente um token do tipo especificado
+ * @param type Tipo esperado
+ * @param message Mensagem de erro se não corresponder
+ * @return Token consumido
+ * @throws ParseError se o tipo não corresponder
+ */
+const Token& Parser::consume(TokenType type, const std::string& message){
+  if (check(type)) return advance();
+  throw error(peek(), message);
+
+}
+
+/** Cria um objeto de erro de parsing
+ * @param token Token onde ocorreu o error
+ * @param message Descriçaõ do erro
+ * @return Objeto ParseError
+ */
+ParseError Parser::error(const Token& token, const std::string& message) const{
+  return ParseError(token, "[Linha"+ std::to_string(token.line)+ "]" + message);
+
+}
+
+/** Sincronoza após um erro - avança até encontrar um ponto de recuperação 
+ * Pontos de recuperação: inicios de declarações( class, func, var, etc.)
+ */
+void Parser::synchronize(){
+  advance();//Avança pelo token problematico
+
+  //Continua avançado até achar um ponto de Sincronozaçaõ 
+  while(!isAtEnd()){
+    if (precious().type == TokenType::SEMICOLON) return;
+
+    switch (peek().type){
+       case TokenType::CLASSE;
+       case TokenType::FONCTION;
+       case TokenType::LAISSER;
+       case TokenType::CONSTANTE;
+       case TokenType::SI;
+       case TokenType::POUR;
+       case TokenType::TANTQUE;
+       case TokenType::RETOURNER;
+             return;
+       default:
+             advance();
+
+    }
+  }
+
+}
+
+//=========================================================================
+//Métodos de parsing de declarações(top-level)
+//========================================================================
+//
+/** Método principal que inicia o parsing do programa
+ * @return AST do programa (nó raiz do Program)
+ */
+std::unique_ptr<Program> Parser::parse(){
+  auto program = std::make_unique<Program>();
+
+  //Processa todas as declarações até o final do arquivo]
+  while (!isAtEnd()){
+    try{
+      program->declarations.push_back(parseDeclaration());
+    }catch ( const ParseError& e){
+      //reporta o erro e Sincronoza para tentat Continuar
+      std::cerr << e.what() << std::end1;
+      synchronize();
+
+      //Em produção, coletaria todos os erros antes de abortar
+      throw;
+
+      }
+    }
+    return program;
+  
+}
+
+/** Parseia uma declaraçaõ de alto nivel
+ * @return Declaração (class, func, var ou statement)
+ */
+
+Dec1Ptr Parser::parseDeclaration(){
+  if (match(TokenType::CLASSE))   return parseClasseDeclaration();
+  if (match(TokenType::FONCTION)) return parseFunctionDeclaration();
+  if (match({TokenType::LAISSER, TokenType::CONSTANTE})){
+  //Retrocede pois o token já foi consumido pelo match 
+     current_--;
+     return parseVarDeclaration();
+  }
+  return parseStatement();
+}
+
+
+/** Parsei declaraçaõ de classe 
+ * Formato: "classe" ID [herite ID]{{método}}
+ */
+std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration(){
+  Token name = consume(TokenType::IDENTIFIER, "Esperado nome da classe após 'classe'");
+  //Herança opcional
+  std::unique_ptr<VariableExpr> superclass = nullptr;
+  if ( match(TokenType::HERITE)){
+      Token superName = consume(TokenType::IDENTIFIER, "Esperado nome da superclasse após 'heritee'");
+      superclass = std::make_unique<VariableExpr>(superName);
+  }
+  consume(TokenType::LEFT_BRACE,"Esperado '{'antes do corpo da classe");
+  
+  //Parser métodos da classe 
+  std::vector<std::unique_ptr<VariableExpr>
+}
+
+std::unique_ptr,FunctionDec1> Parser::parseFunctionDeclaration(){
+   Token name = consume(TokenType::IDENTIFIER, "Expect function name after 'fonction',.");
+   consume(TokenType::LEFT_PAREN, "Expect '(' after fnuction name.");
+
+   std::vector<Token> paramns;
+   if (!check(TokenType::RIGHT_PAREN)){
+     do{
+       if (params.size() >= 255){
+         reportError(peek(), "Can't have more than 255 parameters.");
+       }
+       Token param = consume(TokenType::IDENTIFIER, "Expect parameter name");
+       params.std::push_back(param);
+     }while (match(TokenType::COMMA));
+   }
+   consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters");
+
+   //Optonal return type
+   std::unique_ptr<Type> returnType = nullptr;
+   if (match(TokenType::COLON)){
+     returnType = parseType();
+   }
+    
+   //Parse functional body
+   consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
+   auto body = parseBlock();
+
+   return std::make_unique<FunctionDec1>(name, std::move(params), std::move(returnType), std::move(body));
+}
+
+ std::unique_ptr<Type> Parser::parseType() {
+    if (match(TokenType::INT)) return std::make_unique<Type>(TypeKind::INT);
+    if (match(TokenType::FLOAT)) return std::make_unique<Type>(TypeKind::FLOAT);
+    if (match(TokenType::BOOL)) return std::make_unique<Type>(TypeKind::BOOL);
+    if (match(TokenType::STRING)) return std::make_unique<Type>(TypeKind::STRING);
+    if (match(TokenType::VOID)) return std::make_unique<Type>(TypeKind::VOID);
+    
+    if (match(TokenType::IDENTIFIER)) {
+        return std::make_unique<Type>(TypeKind::CLASS, previous());
+    }
+    
+    if (match(TokenType::LEFT_BRACKET)) {
+        auto elementType = parseType();
+        consume(TokenType::RIGHT_BRACKET, "Expect ']' after list type.");
+        return std::make_unique<Type>(TypeKind::LIST, std::move(elementType));
+    }
+    
+    throw error(peek(), "Invalid type specification");
+}
+
+StmtPtr Parser::parseWhileStatement() {
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'tantque'.");
+    auto condition = parseExpression();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+    
+    auto body = parseStatement();
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
+StmtPtr Parser::parseReturnStatement() {
+    Token keyword = previous();
+    ExprPtr value = nullptr;
+    
+    if (!check(TokenType::SEMICOLON)) {
+        value = parseExpression();
+    }
+    
+    consume(TokenType::SEMICOLON, "Expect ';' after return value.");
+    return std::make_unique<ReturnStmt>(keyword, std::move(value));
+}
+
+void Parser::reportError(const Token& token, const std::string& message) {
+    std::cerr << "[Line " << token.line << "] Error: " << message << "\n";
+    hadError = true;
+}  
+
+===== src/value.cpp =====
+// include/value.h
+#pragma once
+
+#include <variant>
+#include <string>
+#include <memory>
+
+class Object;
+class Function;
+
+using Value = std::variant<
+    std::monostate,  // nil
+    bool,
+    int64_t,
+    double,
+    std::string,
+    std::shared_ptr<Object>,
+    std::shared_ptr<Function>
+>;
+
+class ValueHelper {
+public:
+    static std::string typeName(const Value& value);
+    static Value add(const Value& a, const Value& b);
+    // ... outras operações
+};
+
