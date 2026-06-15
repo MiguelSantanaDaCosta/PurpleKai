@@ -13,8 +13,17 @@ std::vector<Token> Lexer::scanTokens() {
             if (c == '\n') line_++;
             continue;
         }
-
-        if (std::isalpha(c) || c == '_') {
+        // Comentário de linha --
+        if (c == '-' && peek() == '-') {
+            while (peek() != '\n' && !isAtEnd()) advance();
+    // Avança o newline se houver (opcional, pois o loop principal vai tratá-lo)
+            if (peek() == '\n') {
+                advance();
+                line_++;
+            }
+            continue;  // ignora o comentário
+        }
+       if (std::isalpha(c) || c == '_') {
             identifier();
         } else if (std::isdigit(c)) {
             number();
@@ -35,7 +44,7 @@ std::vector<Token> Lexer::scanTokens() {
                     addToken(match('=') ? TokenType::INF_EGAL : TokenType::INFERIEUR);
                     break;
                 case '>':
-                    addToken(match('=') ? TokenType::SUP_EGAL : TokenType::SUPERIUER);
+                    addToken(match('=') ? TokenType::SUP_EGAL : TokenType::SUPERIEUR);
                     break;
                 case '&':
                     if (match('&')) addToken(TokenType::ET);
@@ -136,7 +145,7 @@ void Lexer::identifier() {
 
 
 //mapa de PALAVRAS-CHAVE
-static const std::unordered_map<std::string, TokenType> Lexer::keywords ={
+const std::unordered_map<std::string, TokenType> Lexer::keywords ={
 
       {"classe", TokenType::CLASSE},
       {"fonction", TokenType::FONCTION},
@@ -180,7 +189,10 @@ static const std::unordered_map<std::string, TokenType> Lexer::keywords ={
       {"dot", TokenType::DOT},
       {"semicolon", TokenType::SEMICOLON},
       {"colon", TokenType::COLON},
-      {"fin_fichier", TokenType::FIN_FICHIER}
+      {"fin_fichier", TokenType::FIN_FICHIER},
+      {"herite", TokenType::HERITE},
+      {"break", TokenType::BREAK},
+      {"continue", TokenType::CONTINUE}
 };
 
     
@@ -198,5 +210,4 @@ static const std::unordered_map<std::string, TokenType> Lexer::keywords ={
 
 
  
-};
 

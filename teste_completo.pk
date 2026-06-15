@@ -1,0 +1,14 @@
+laisser a = 10;
+laisser b = 20;
+laisser soma = a + b;
+"Resultado: " + soma;
+
+si (soma > 25) {
+    "Maior que 25";
+} sinon {
+    "Menor ou igual a 25";
+}
+
+pour (laisser i = 0; i < 3; i = i + 1) {
+    "Valor de i: " + i;
+}

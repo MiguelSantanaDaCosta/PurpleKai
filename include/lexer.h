@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 #include <cctype>
-
+#include <unordered_map>
 
 enum class TokenType {
     // ==============================================
@@ -35,7 +35,12 @@ enum class TokenType {
     NOMBRE,       // ≡ int/long (números inteiros)
     DECIMAL,      // ≡ float/double
     CHAINE,       // ≡ std::string
-
+    
+    INT,
+    FLOAT,
+    BOOL,
+    STRING,
+    VOID,
     // ==============================================
     // OPERADORES (mesmos símbolos, nomes em francês)
     // ==============================================
@@ -45,7 +50,6 @@ enum class TokenType {
     DIVISE,        // ≡ /
     PERCENT,      // ≡ %
     
-    // Operadores de comparação
     EGAL,         // ≡ =
     EGAL_EGAL,    // ≡ ==
     DIFFERENT,    // ≡ !=
@@ -75,7 +79,13 @@ enum class TokenType {
     // ==============================================
     // CONTROLE DO PARSER
     // ==============================================
-    FIN_FICHIER   // ≡ EOF
+    FIN_FICHIER,   // ≡ EOF
+    HERITE,
+    BREAK,
+    CONTINUE
+    
+
+
 };
 
 // ==============================================

@@ -1,4 +1,3 @@
-#include "lexer.cpp"
 #include "parser.h"
 #include "lexer.h"
 #include <cctype>
@@ -9,7 +8,7 @@
 //=================================================
 //IMPLEMENTAÇÃO DOS METODOS AUXILIARES
 //=================================================
-Parser::Parser(const std::vector<Token& tokens)
+Parser::Parser(const std::vector<Token>& tokens)
   : tokens_(tokens){}
 
 
@@ -17,7 +16,7 @@ Parser::Parser(const std::vector<Token& tokens)
    * @return true se o token atual é END_OF_FILE
    */
   bool Parser::isAtEnd() const {
-    return peek().type == TokenType::END_OF_FILE;
+    return peek().type == TokenType::FIN_FICHIER;
   }
 
 /** Avança para o proximo token e retorna o token anterior
@@ -25,7 +24,7 @@ Parser::Parser(const std::vector<Token& tokens)
  */ 
 
 const Token& Parser::advance(){
-  if(!asAtEnd()) current_++;
+  if(!isAtEnd()) current_++;
   return previous();
 }
 
@@ -33,7 +32,7 @@ const Token& Parser::advance(){
  * @return Token atual
  */
 const Token& Parser::peek() const {
-  return tokens_[current_ -1];
+  return tokens_[current_];
 }
 
 /** Verifica e consume o token se for do tipo especificado
@@ -49,6 +48,10 @@ bool Parser::match(TokenType type){
   return false;
 }
 
+
+const Token& Parser::previous() const {
+    return tokens_[current_ - 1];
+}
 /** Verifivca e consome se qualquer um dos tipos corresponder
  * @param types Lista de tipos possiveis
  * @return true se algumn token foi consumido
@@ -94,17 +97,17 @@ void Parser::synchronize(){
 
   //Continua avançado até achar um ponto de Sincronozaçaõ 
   while(!isAtEnd()){
-    if (precious().type == TokenType::SEMICOLON) return;
+    if (previous().type == TokenType::SEMICOLON) return;
 
     switch (peek().type){
-       case TokenType::CLASSE;
-       case TokenType::FONCTION;
-       case TokenType::LAISSER;
-       case TokenType::CONSTANTE;
-       case TokenType::SI;
-       case TokenType::POUR;
-       case TokenType::TANTQUE;
-       case TokenType::RETOURNER;
+        case TokenType::CLASSE:
+        case TokenType::FONCTION:
+        case TokenType::LAISSER:
+        case TokenType::CONSTANTE:
+        case TokenType::SI:
+        case TokenType::POUR:
+        case TokenType::TANTQUE:
+        case TokenType::RETOURNER:
              return;
        default:
              advance();
@@ -130,7 +133,7 @@ std::unique_ptr<Program> Parser::parse(){
       program->declarations.push_back(parseDeclaration());
     }catch ( const ParseError& e){
       //reporta o erro e Sincronoza para tentat Continuar
-      std::cerr << e.what() << std::end1;
+      std::cerr << e.what() << std::endl;
       synchronize();
 
       //Em produção, coletaria todos os erros antes de abortar
@@ -146,7 +149,7 @@ std::unique_ptr<Program> Parser::parse(){
  * @return Declaração (class, func, var ou statement)
  */
 
-Dec1Ptr Parser::parseDeclaration(){
+StmtPtr Parser::parseDeclaration(){
   if (match(TokenType::CLASSE))   return parseClasseDeclaration();
   if (match(TokenType::FONCTION)) return parseFunctionDeclaration();
   if (match({TokenType::LAISSER, TokenType::CONSTANTE})){
@@ -162,13 +165,11 @@ Dec1Ptr Parser::parseDeclaration(){
 /** Parseia declaração de classe 
  * Formato: "classe" ID [herite ID] "{" {método} "}"
  */
-std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration() {
-    Token name = consume(TokenType::IDENTIFIER, "Esperado nome da classe após 'classe'");
-
+std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration() {Token name = consume(TokenType::IDENTIFIANT, "Esperado nome da classe após 'classe'");
     // Herança opcional
     std::unique_ptr<VariableExpr> superclass = nullptr;
     if (match(TokenType::HERITE)) {
-        Token superName = consume(TokenType::IDENTIFIER, "Esperado nome da superclasse após 'herite'");
+        Token superName = consume(TokenType::IDENTIFIANT, "Esperado nome da superclasse após 'herite'");
         superclass = std::make_unique<VariableExpr>();
         superclass->value = superName; 
     }
@@ -191,18 +192,18 @@ std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration() {
     return classDec;
 }
 
-std::unique_ptr,FunctionDec1> Parser::parseFunctionDeclaration(){
-   Token name = consume(TokenType::IDENTIFIER, "Expect function name after 'fonction',.");
+std::unique_ptr<FunctionDec1> Parser::parseFunctionDeclaration(){
+   Token name = consume(TokenType::IDENTIFIANT, "Expect function name after 'fonction',.");
    consume(TokenType::LEFT_PAREN, "Expect '(' after fnuction name.");
 
-   std::vector<Token> paramns;
+   std::vector<Token> params;
    if (!check(TokenType::RIGHT_PAREN)){
      do{
        if (params.size() >= 255){
          reportError(peek(), "Can't have more than 255 parameters.");
        }
-       Token param = consume(TokenType::IDENTIFIER, "Expect parameter name");
-       params.std::push_back(param);
+       Token param = consume(TokenType::IDENTIFIANT, "Expect parameter name");
+       params.push_back(param);
      }while (match(TokenType::COMMA));
    }
    consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters");
@@ -227,13 +228,13 @@ std::unique_ptr,FunctionDec1> Parser::parseFunctionDeclaration(){
     if (match(TokenType::STRING)) return std::make_unique<Type>(TypeKind::STRING);
     if (match(TokenType::VOID)) return std::make_unique<Type>(TypeKind::VOID);
     
-    if (match(TokenType::IDENTIFIER)) {
+    if (match(TokenType::IDENTIFIANT)) {
         return std::make_unique<Type>(TypeKind::CLASS, previous());
     }
     
-    if (match(TokenType::LEFT_BRACKET)) {
+    if (match(TokenType::CHOCHET_OUVRANT)) {
         auto elementType = parseType();
-        consume(TokenType::RIGHT_BRACKET, "Expect ']' after list type.");
+        consume(TokenType:: CHOCHET_FERMANT, "Expect ']' after list type.");
         return std::make_unique<Type>(TypeKind::LIST, std::move(elementType));
     }
     
@@ -392,17 +393,16 @@ ExprPtr Parser::parseFactor() {
     return expr;
 }
 
+
 ExprPtr Parser::parseUnary() {
     if (match({TokenType::NON, TokenType::MOINS})) {
         Token op = previous();
         ExprPtr right = parseUnary();
-        // Nota: Assumindo que você criará um UnaryExpr no parser.h, já que ele foi mencionado 
-        // mas escrito com erro de digitação ("UnaryExpt") na declaração[cite: 115].
-        // Exemplo temporário caso falte a classe:
-        // auto unary = std::make_unique<UnaryExpr>();
-        // unary->op = op; unary->right = std::move(right); return unary;
+        auto unary = std::make_unique<UnaryExpr>();
+        unary->op = op;
+        unary->right = std::move(right);
+        return unary;
     }
-
     return parseCall();
 }
 
@@ -421,23 +421,37 @@ ExprPtr Parser::parseCall() {
 }
 
 ExprPtr Parser::parsePrimary() {
-    if (match(TokenType::FAUX)) {
-        auto expr = std::make_unique<LiteralExpr>();
-        // expr->value = false; // Dependendo de como você estrutura LiteralExpr
-        return expr;
-    }
     if (match(TokenType::VRAI)) {
         auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(true);
+        return expr;
+    }
+    if (match(TokenType::FAUX)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(false);
         return expr;
     }
     if (match(TokenType::NULLE)) {
         auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value();  // nil
         return expr;
     }
 
-    if (match({TokenType::NOMBRE, TokenType::DECIMAL, TokenType::CHAINE})) {
+    if (match(TokenType::NOMBRE)) {
         auto expr = std::make_unique<LiteralExpr>();
-        // Aqui você precisa extrair o valor do lexema e injetar no LiteralExpr
+        int intValue = std::stoi(previous().lexeme);
+        expr->value = Value(intValue);
+        return expr;
+    }
+    if (match(TokenType::DECIMAL)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        double doubleValue = std::stod(previous().lexeme);
+        expr->value = Value(doubleValue);
+        return expr;
+    }
+    if (match(TokenType::CHAINE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(previous().lexeme);
         return expr;
     }
 
@@ -457,6 +471,7 @@ ExprPtr Parser::parsePrimary() {
 
     throw error(peek(), "Esperada uma expressão.");
 }
+
 
 // Método auxiliar para construir a chamada de função
 ExprPtr Parser::finishCall(ExprPtr callee) {
@@ -478,4 +493,119 @@ ExprPtr Parser::finishCall(ExprPtr callee) {
     callExpr->arguments = std::move(arguments);
     
     return callExpr;
+}
+
+// ==========================================
+// MÉTODOS FALTANTES NO PARSER
+// ==========================================
+
+bool Parser::check(TokenType type) const {
+    if (isAtEnd()) return false;
+    return peek().type == type;
+}
+
+std::unique_ptr<VarDec1> Parser::parseVarDeclaration() {
+    bool isConst = match(TokenType::CONSTANTE);
+    if (!isConst) consume(TokenType::LAISSER, "Esperado 'laisser' ou 'constant'");
+    
+    Token name = consume(TokenType::IDENTIFIANT, "Esperado nome da variável");
+    ExprPtr initializer = nullptr;
+    
+    if (match(TokenType::EGAL)) {
+        initializer = parseExpression();
+    }
+    
+    consume(TokenType::SEMICOLON, "Esperado ';' após declaração de variável");
+    auto varDec = std::make_unique<VarDec1>();
+    varDec->name = name;
+    varDec->initializer = std::move(initializer);
+    varDec->isConst = isConst;
+    return varDec;
+}
+
+StmtPtr Parser::parseStatement() {
+    if (match(TokenType::SI)) return parseIfStatement();
+    if (match(TokenType::POUR)) return parseForStatement();
+    if (match(TokenType::TANTQUE)) return parseWhileStatement();
+    if (match(TokenType::RETOURNER)) return parseReturnStatement();
+    if (match(TokenType::LEFT_BRACE)) return parseBlock();
+    if (match(TokenType::BREAK)) {
+        consume(TokenType::SEMICOLON, "Expected ';' after break");
+        return std::make_unique<BreakStmt>();
+    }
+    if (match(TokenType::CONTINUE)) {
+        consume(TokenType::SEMICOLON, "Expected ';' after continue");
+        return std::make_unique<ContinueStmt>();
+    }
+    return parseExprStmt();
+}
+
+StmtPtr Parser::parseExprStmt() {
+    ExprPtr expr = parseExpression();
+    consume(TokenType::SEMICOLON, "Esperado ';' após expressão.");
+    auto stmt = std::make_unique<ExprStmt>();
+    stmt->expression = std::move(expr);
+    return stmt;
+}
+
+std::unique_ptr<BlockStmt> Parser::parseBlock() {
+    auto block = std::make_unique<BlockStmt>();
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        block->statements.push_back(parseDeclaration());
+    }
+    consume(TokenType::RIGHT_BRACE, "Esperado '}' após o bloco.");
+    return block;
+}
+
+StmtPtr Parser::parseIfStatement() {
+    consume(TokenType::LEFT_PAREN, "Esperado '(' após 'si'.");
+    ExprPtr condition = parseExpression();
+    consume(TokenType::RIGHT_PAREN, "Esperado ')' após condição do 'si'.");
+    
+    StmtPtr thenBranch = parseStatement();
+    StmtPtr elseBranch = nullptr;
+    if (match(TokenType::SINON)) {
+        elseBranch = parseStatement();
+    }
+    
+    auto ifStmt = std::make_unique<IfStmt>();
+    ifStmt->condition = std::move(condition);
+    ifStmt->thenBranch = std::move(thenBranch);
+    ifStmt->elseBranch = std::move(elseBranch);
+    return ifStmt;
+}
+
+StmtPtr Parser::parseForStatement() {
+    consume(TokenType::LEFT_PAREN, "Esperado '(' após 'pour'.");
+    
+    StmtPtr initializer;
+    if (match(TokenType::SEMICOLON)) {
+        initializer = nullptr;
+    } else if (match({TokenType::LAISSER, TokenType::CONSTANTE})) {
+        current_--; // Volta para o parseVarDeclaration consumir
+        initializer = parseVarDeclaration();
+    } else {
+        initializer = parseExprStmt();
+    }
+
+    ExprPtr condition = nullptr;
+    if (!check(TokenType::SEMICOLON)) {
+        condition = parseExpression();
+    }
+    consume(TokenType::SEMICOLON, "Esperado ';' após condição do loop.");
+
+    ExprPtr increment = nullptr;
+    if (!check(TokenType::RIGHT_PAREN)) {
+        increment = parseExpression();
+    }
+    consume(TokenType::RIGHT_PAREN, "Esperado ')' após cláusulas do 'pour'.");
+
+    StmtPtr body = parseStatement();
+
+    auto forStmt = std::make_unique<ForStmt>();
+    forStmt->initializer = std::move(initializer);
+    forStmt->condition = std::move(condition);
+    forStmt->increment = std::move(increment);
+    forStmt->body = std::move(body);
+    return forStmt;
 }

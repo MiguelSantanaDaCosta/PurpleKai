@@ -1,50 +1,59 @@
 #pragma once
+
 #include <variant>
 #include <string>
 #include <vector>
-#include <tipe.h>
+#include <memory>
+#include <functional>
+
+#include "type.h"
 #include "lexer.h"
-#include "parser.h"
-#include "environment.h"
-#include "interpreter.h"
-#include "lexer.cpp"
-#include "parser.cpp"
-#include "environment.cpp"
-#include "interpreter.cpp"
 
+// Forward declarations
+class Environment;
+class Interpreter;
+class BlockStmt;
 
-enum class ValueType {NIL, BOOL, NUMBER, FLOAT, STRING, FUNCTION, NATIVE_FUNCTION} ;
+struct Value;
+
+enum class ValueType {
+    NIL,
+    BOOL,
+    NUMBER,
+    FLOAT,
+    STRING,
+    FUNCTION,
+    NATIVE_FUNCTION
+};
 
 class Function;
-class Environment;
 
 using ValueBase = std::variant<
-   std::monostate,                                //NIL
-   bool,                                          //BOOL
-   int,                                           //NUMBER
-   std::string,                                   //FLOAT
-   Function*,                                     //STRING
-   std::function<Value(const std::vector<Valeu>&)>//NATIVE_FUNCTION
->;                   
+    std::monostate,
+    bool,
+    int,
+    double,
+    std::string,
+    Function*,
+    std::function<Value(const std::vector<Value>&)>
+>;
 
 struct Value {
-  ValeuType type;
-  ValueBase data;
+    ValueType type;
+    ValueBase data;
 
-  Value();
-  Value(bool b);
-  Value(int i);
-  Value(double d);
-  Value(const std::string& s);
+    Value();
+    Value(bool b);
+    Value(int i);
+    Value(double d);
+    Value(const std::string& s);
 
-  std::string toString() const;
-
+    std::string toString() const;
 };
 
 class Function {
 public:
-  std::vector<Token> params;
-  std::unique_ptr<BlockStmt> body;
-  Environment* closure;
+    std::vector<Token> params;
+    std::unique_ptr<BlockStmt> body;
+    Environment* closure = nullptr;
 };
-

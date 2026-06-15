@@ -1,6 +1,7 @@
 #pragma once
 #include "lexer.h"
 #include <string>
+#include <memory> // Necessário para usar std::unique_ptr
 
 enum class TypeKind {
   INT,
@@ -15,22 +16,21 @@ enum class TypeKind {
 
 class Type {
 public:
-  TypeKinf kind;
-  Token className;//For CLASS types
-  std::unique_ptr<Type> elementType;//For LIST OPTIINAL
+  TypeKind kind; // Corrigido de TypeKinf para TypeKind
+  Token className; // Para tipos CLASS
+  std::unique_ptr<Type> elementType; // Para LIST ou OPTIONAL
   
-  //Constructor for simple Type
-  explicit Type(TypeKind kind) : kind(kind){}
+  // Construtor para tipos simples
+  explicit Type(TypeKind kind) : kind(kind) {}
 
-  //Constructor for class types
+  // Construtor para tipos de classe
   Type(TypeKind kind, Token className)
-    : kind(kind), className(className){}
+    : kind(kind), className(className) {}
    
-  //Constructor for composite type 
-  Type(TypeKind kind, std::uniqye_ptr<Type elementType)
-    : kind(kind), elementType(std::move(elementType)){}
+  // Construtor para tipos compostos
+  // Corrigido de std::uniqye_ptr<Type para std::unique_ptr<Type>
+  Type(TypeKind kind, std::unique_ptr<Type> elementType)
+    : kind(kind), elementType(std::move(elementType)) {}
 
   std::string toString() const;
-
 };
-  
