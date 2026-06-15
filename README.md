@@ -1,34 +1,141 @@
-PurpleKai - Linguagem de Programação em Francês
-![Logo](https://github.com/user-attachments/assets/de51d6ba-5b6a-46fb-afd9-f2cbf10a5dce)
+# PurpleKai - Linguagem de Programação em Francês (v0.1.0)
 
-PurpleKai é uma linguagem de programação interpretada, orientada a objetos, com tipagem dinâmica e sintaxe em francês, projetada para ser acessível e expressiva.
+**PurpleKai** é uma linguagem de programação interpretada, com tipagem dinâmica e sintaxe em francês.  
+Na versão **0.1.0**, a linguagem já é **Turing complete** e suporta variáveis, operadores aritméticos e lógicos, condicionais, loops, `break`, `continue`, comentários e execução de scripts. [web:59][web:62]
 
-✨ Características Principais
-🎯 Sintaxe em francês - Mais natural para falantes do idioma
+> ⚠️ **Nota**: Esta versão é um **MVP funcional**. Recursos como funções, classes, tratamento de erros e módulos ainda não estão implementados.
 
-🧩 Orientação a objetos - Classes, herança e polimorfismo
+---
 
-🔄 Tipagem dinâmica - Flexível mas com verificação de tipos
+## Funcionalidades implementadas
 
-🧠 Coletor de lixo - Gerenciamento automático de memória
+- Variáveis mutáveis (`laisser`) e constantes (`constant`).
+- Operadores aritméticos: `+`, `-`, `*`, `/`, `%`.
+- Operadores de comparação: `==`, `!=`, `<`, `<=`, `>`, `>=`.
+- Operadores lógicos: `et`, `ou`, `non`.
+- Condicionais: `si` / `sinon`.
+- Loops: `tantque` e `pour`.
+- Controle de fluxo com `break` e `continue`.
+- Comentários de linha com `--`.
+- Concatenação mista entre texto e número.
+- REPL interativo e execução de arquivos `.pk`.
+- Tipos básicos: inteiro, decimal, string, booleano e nulo. [web:59][web:62]
 
-⚡ Interoperabilidade - Interface com bibliotecas C++
+---
 
+## Exemplo funcional
 
-🤝 Como Contribuir
-Faça um fork do projeto
+```ruby
+laisser a = 10;
+laisser b = 20;
+laisser soma = a + b;
 
-Crie sua branch (git checkout -b feature/AmazingFeature)
+"Resultado: " + soma;
 
-Commit suas mudanças (git commit -m 'Add some AmazingFeature')
+si (soma > 25) {
+    "Maior que 25";
+} sinon {
+    "Menor ou igual a 25";
+}
 
-Push para a branch (git push origin feature/AmazingFeature)
+pour (laisser i = 0; i < 3; i = i + 1) {
+    "Valor de i: " + i;
+}
+```
 
-Abra um Pull Request
+---
 
+## Como executar
 
-📝 Licença
-Distribuído sob a licença MIT. Veja LICENSE para mais informações.
+```bash
+make clean
+make
+./purplekai
+./purplekai script.pk
+```
 
-🙌 Agradecimentos
-Total inpiração a Kailane Damasceno da Silva, minha melhor amiga e minha chama
+---
+
+## Especificação da linguagem
+
+### Palavras-chave
+
+| Francês | Equivalente | Função |
+|---|---|---|
+| `laisser` | variável | declara variável mutável |
+| `constant` | constante | declara valor imutável |
+| `si` | `if` | condição principal |
+| `sinon` | `else` | bloco alternativo |
+| `tantque` | `while` | loop condicional |
+| `pour` | `for` | loop com inicialização, condição e incremento |
+| `break` | `break` | interrompe o loop |
+| `continue` | `continue` | pula para a próxima iteração |
+| `vrai` | `true` | valor booleano verdadeiro |
+| `faux` | `false` | valor booleano falso |
+| `nul` | `null` | valor nulo |
+
+### Operadores
+
+- Aritméticos: `+ - * / %`
+- Comparação: `== != < <= > >=`
+- Lógicos: `et`, `ou`, `non`
+
+### Tipos de dados
+
+- Inteiro.
+- Decimal.
+- String.
+- Booleano.
+- Nulo.
+
+### Comentários
+
+Comentários de linha usam `--` e vão até o fim da linha.
+
+```ruby
+laisser x = 10;  -- comentário
+```
+
+---
+
+## Limitações da versão 0.1.0
+
+- Não há funções definidas pelo usuário.
+- Não há orientação a objetos.
+- Não há classes, objetos, herança ou polimorfismo.
+- Não há tratamento de exceções.
+- Não há módulos nem biblioteca padrão.
+- Comentários podem ter limitações dependendo da posição no código.
+- `break` e `continue` funcionam apenas em contextos suportados pelo interpretador atual.
+
+---
+
+## Próximas versões
+
+- **v0.2.0**: funções e escopo léxico.
+- **v0.3.0**: classes e objetos.
+- **v0.4.0**: tratamento de erros e módulos.
+- **v0.5.0**: melhorias de performance e novos recursos de linguagem.
+
+---
+
+## Documento de especificação
+
+Este repositório também inclui uma especificação realista da versão atual da linguagem, descrevendo apenas o que já funciona hoje.  
+O documento pode ser convertido para PDF com:
+
+```bash
+pandoc PurpleKai-spec-v0.1.0.md -o PurpleKai.pdf
+```
+
+---
+
+## Licença
+
+Distribuído sob licença MIT.
+
+---
+
+## Agradecimentos
+
+Total inspiração a **Kailane Damasceno da Silva**, minha melhor amiga e minha chama.
