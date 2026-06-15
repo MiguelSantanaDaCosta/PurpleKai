@@ -1,0 +1,5327 @@
+--- SUMÁRIO DE ARQUIVOS (39 arquivos) ---
+PurpleKai.ebnf
+README.md
+include/type.h
+include/value.h
+include/environment.h
+include/lexer.h
+include/interpreter.h
+include/parser.h
+src/value.cpp
+src/environment.cpp
+src/main.cpp
+src/type.cpp
+src/lexer.cpp
+src/parser.cpp
+src/interpreter.cpp
+Makefile
+PurpleKai-0.1.0/Makefile
+PurpleKai-0.1.0/README.md
+PurpleKai-0.1.0/include/type.h
+PurpleKai-0.1.0/include/value.h
+PurpleKai-0.1.0/include/environment.h
+PurpleKai-0.1.0/include/lexer.h
+PurpleKai-0.1.0/include/interpreter.h
+PurpleKai-0.1.0/include/parser.h
+PurpleKai-0.1.0/src/value.cpp
+PurpleKai-0.1.0/src/environment.cpp
+PurpleKai-0.1.0/src/main.cpp
+PurpleKai-0.1.0/src/type.cpp
+PurpleKai-0.1.0/src/lexer.cpp
+PurpleKai-0.1.0/src/parser.cpp
+PurpleKai-0.1.0/src/interpreter.cpp
+PurpleKai-0.1.0/teste_break.pk
+PurpleKai-0.1.0/teste_completo.pk
+PurpleKai-0.1.0/teste_continue.pk
+PurpleKai-0.1.0/teste_minimo.pk
+gera_teste.py
+demo_purplekai.py
+demo_live.py
+demo_live_nvim.py
+-------------------------------------------
+===== PurpleKai.ebnf =====
+
+
+(*==============================)
+(*1.PROGRAMA PRINCIPAL)
+(*==============================*)
+  
+
+program = {declaration} EOF ;
+declaration=
+    classDec1
+    |functionDec1
+    |varDec1
+    |statement
+    |interface_dec1
+;
+
+
+(*-----------------*)
+(*2.Classes*)
+class_dec1 =
+   "classe" IDENTIFIER
+   ["hérite" IDENTIFIER]
+   "{"{member_dec1}"}"
+;
+
+member_dec1 =
+  function_dec1
+  |variable_dec1
+;
+
+(*INTERFACES*)
+interface_dec1=
+  "interface"IDENTIFIER
+  "{"{function_proto}"}"
+;
+
+function_proto =
+  "fonction"IDENTIFIER"("[parameters]")"[":"type]
+;
+
+
+(*FUNÇÕES*)
+function_dec1 =
+  "function_dec1"IDENTIFIER
+  "("[parameters]")"
+  [":"type]
+  block
+;
+
+
+parameters = parameter {","parameter};
+parameter = IDENTIFIER[":"type];
+
+
+(*VARIAVEIS*)
+variable_dec1=
+  ("laiser"|"constant")
+  IDENTIFIER [":"type]
+  ["="expression]
+  ";"
+;
+
+
+(*TIPOS*)
+type =
+  "Int"
+  |"Float"
+  |"Bool"
+  |"String"
+  |"Void"
+  |IDENTIFIER (*Nome de classe*)
+  |"["type"]"(*Listas*)
+  |type "?"(*Tipo opcional*)
+;
+
+(*Comandos(statement)*)
+statement =
+  expr_stmt
+  |if_stmt
+  |for_stmt
+  |while_stmt
+  |return_stmt
+  |block
+  |break_stmt
+  |continue_stmt
+  |match_stmt
+;
+ 
+expr_stmt = expression";":
+
+if_stmt =
+  "si""("expression")"
+  statement
+  ["sinon"statement]
+;
+
+for_stmt =
+   "pour""("
+   (variable_dec1 | expr_stmt | ";")
+   expression? ";"
+   expression?
+   ")" statement
+;
+
+return_stmt =
+  "retourner"[expression]";"
+;
+
+break_stmt = "break" ";" ;
+continue_stmt = "continue" ";";
+
+block = "{"{declaration}"}" ;
+
+match_stmt =
+  "match" "(" expression ")"
+  "{"{match_case}"}"
+;
+
+match_case =
+   pattern "=>"(statement|expression";")
+;
+
+pattern =
+    literal
+    |IDENTIFIER
+    |"_"
+    |"["[ pattern{"," pattern }]"]"
+;
+
+
+(*EXPRESSÕES*)
+expression =
+   assigment
+;
+
+assigment =
+   (call ".")? IDENTIFIER "=" assigment
+   | ternary
+;
+
+ternary =
+   logic_o [ "?" expression ":" ternary]
+;
+
+logic_or =
+   logic_and{ "ou" logic_and}
+;
+
+logic_and =
+   equality{"et" equality}
+;
+
+equality =
+   comparison {("==" | "!=") comparison }
+;
+
+comparison =
+   term {("<" | "<=" |">" | ">=" ) term }
+;
+
+term =
+  factor {("+" | "-") factor}
+;
+
+unary =
+  ("!" | "-" | "+") unary
+  | call
+;
+
+call =
+   primary
+   ("("[ arguments]")"
+   | "." IDENTIFIER
+   | "[" expression "]"
+   )*
+;
+
+arguments =
+  expression {"," expression}
+;
+
+primary =
+  literal
+  |IDENTIFIER
+  |"(" expression ")"
+  |"[" [ expression {"," expression} ]"]"
+  |"nouveau" IDENTIFIER "(" [ arguments]")"
+  |"self"
+  |"super"
+;
+
+literal =
+    NUMBER
+    |FLOAT
+    |STRING
+    |"vrai"
+    |"faux"
+    |"nul"
+;
+
+(*TERMINAIS (TOKENS)*)
+IDENTIFIER = LETTER(LETTER | DIGIT | "_")*;
+NUMBER = DIGIT+ ;
+FLOAT = DIGIT+ "." DIGIT+ ;
+STRING = '"' (CHARACTER - '"')* ;
+
+LETTER = "a"-"z" |"A"-"Z" | "é" | "è" | "ê" ;
+DIGIT = "0"-"9" ;
+CHARACTER = ?  ? ;
+
+(*COMENTARIO*)
+COMMENT = "(*" (CHARACTER - "*")* "*)" ;
+LINE_COMMENT = "--" (CHARACTER - NEWLINE)* NEWLINE ;
+NEWLINE = "\r" "\n" ;
+WHITESPACE = (" "| "\t" | NEWLINE)+ ;
+
+
+
+===== README.md =====
+PurpleKai - Linguagem de Programação em Francês
+![Logo](https://github.com/user-attachments/assets/de51d6ba-5b6a-46fb-afd9-f2cbf10a5dce)
+
+PurpleKai é uma linguagem de programação interpretada, orientada a objetos, com tipagem dinâmica e sintaxe em francês, projetada para ser acessível e expressiva.
+
+✨ Características Principais
+🎯 Sintaxe em francês - Mais natural para falantes do idioma
+
+🧩 Orientação a objetos - Classes, herança e polimorfismo
+
+🔄 Tipagem dinâmica - Flexível mas com verificação de tipos
+
+🧠 Coletor de lixo - Gerenciamento automático de memória
+
+⚡ Interoperabilidade - Interface com bibliotecas C++
+
+
+🤝 Como Contribuir
+Faça um fork do projeto
+
+Crie sua branch (git checkout -b feature/AmazingFeature)
+
+Commit suas mudanças (git commit -m 'Add some AmazingFeature')
+
+Push para a branch (git push origin feature/AmazingFeature)
+
+Abra um Pull Request
+
+
+📝 Licença
+Distribuído sob a licença MIT. Veja LICENSE para mais informações.
+
+🙌 Agradecimentos
+Total inpiração a Kailane Damasceno da Silva, minha melhor amiga e minha chama
+
+===== include/type.h =====
+#pragma once
+#include "lexer.h"
+#include <string>
+#include <memory> // Necessário para usar std::unique_ptr
+
+enum class TypeKind {
+  INT,
+  FLOAT,
+  BOOL,
+  STRING,
+  VOID,
+  CLASS,
+  LIST,
+  OPTIONAL
+};
+
+class Type {
+public:
+  TypeKind kind; // Corrigido de TypeKinf para TypeKind
+  Token className; // Para tipos CLASS
+  std::unique_ptr<Type> elementType; // Para LIST ou OPTIONAL
+  
+  // Construtor para tipos simples
+  explicit Type(TypeKind kind) : kind(kind) {}
+
+  // Construtor para tipos de classe
+  Type(TypeKind kind, Token className)
+    : kind(kind), className(className) {}
+   
+  // Construtor para tipos compostos
+  // Corrigido de std::uniqye_ptr<Type para std::unique_ptr<Type>
+  Type(TypeKind kind, std::unique_ptr<Type> elementType)
+    : kind(kind), elementType(std::move(elementType)) {}
+
+  std::string toString() const;
+};
+
+===== include/value.h =====
+#pragma once
+
+#include <variant>
+#include <string>
+#include <vector>
+#include <memory>
+#include <functional>
+
+#include "type.h"
+#include "lexer.h"
+
+// Forward declarations
+class Environment;
+class Interpreter;
+class BlockStmt;
+
+struct Value;
+
+enum class ValueType {
+    NIL,
+    BOOL,
+    NUMBER,
+    FLOAT,
+    STRING,
+    FUNCTION,
+    NATIVE_FUNCTION
+};
+
+class Function;
+
+using ValueBase = std::variant<
+    std::monostate,
+    bool,
+    int,
+    double,
+    std::string,
+    Function*,
+    std::function<Value(const std::vector<Value>&)>
+>;
+
+struct Value {
+    ValueType type;
+    ValueBase data;
+
+    Value();
+    Value(bool b);
+    Value(int i);
+    Value(double d);
+    Value(const std::string& s);
+
+    std::string toString() const;
+};
+
+class Function {
+public:
+    std::vector<Token> params;
+    std::unique_ptr<BlockStmt> body;
+    Environment* closure = nullptr;
+};
+
+===== include/environment.h =====
+#pragma once
+#include <unordered_map>
+#include <string>
+#include <memory>
+#include "value.h"
+
+class Environment{
+  std::unordered_map<std::string, Value> values;
+  Environment* parent = nullptr;
+
+  public:
+    Environment(Environment* parent = nullptr);
+    void define(const std::string& name, Value value);
+    Value get(const Token& name);
+    void assign(const Token& name, Value value);
+};
+
+
+
+
+===== include/lexer.h =====
+// include/lexer.h
+#pragma once
+
+#include <string>
+#include <vector>
+#include <cctype>
+#include <unordered_map>
+
+enum class TokenType {
+    // ==============================================
+    // PALAVRAS-CHAVE (com equivalentes em C++)
+    // ==============================================
+    CLASSE,       // ≡ class (C++)
+    FONCTION,     // ≡ (métodos em C++, sem equivalente exato para declaração)
+    LAISSER,      // ≡ auto (mas com tipagem dinâmica)
+    CONSTANTE,    // ≡ constexpr/const (dependendo do uso)
+    
+    // Controle de fluxo
+    SI,           // ≡ if
+    SINON,        // ≡ else
+    POUR,         // ≡ for (mais próximo do range-based for do C++)
+    TANTQUE,      // ≡ while
+    RETOURNER,    // ≡ return
+    
+    // Valores e alocação
+    NOUVEAU,      // ≡ new (mas com GC automático)
+    VRAI,         // ≡ true
+    FAUX,         // ≡ false
+    NULLE,        // ≡ nullptr (observação: "nulle" em francês é feminino)
+
+    // ==============================================
+    // IDENTIFICADORES E LITERAIS
+    // ==============================================
+    IDENTIFIANT,  // ≡ identificadores C++
+    NOMBRE,       // ≡ int/long (números inteiros)
+    DECIMAL,      // ≡ float/double
+    CHAINE,       // ≡ std::string
+    
+    INT,
+    FLOAT,
+    BOOL,
+    STRING,
+    VOID,
+    // ==============================================
+    // OPERADORES (mesmos símbolos, nomes em francês)
+    // ==============================================
+    PLUS,         // ≡ +
+    MOINS,        // ≡ -
+    FOIS,         // ≡ *
+    DIVISE,        // ≡ /
+    PERCENT,      // ≡ %
+    
+    EGAL,         // ≡ =
+    EGAL_EGAL,    // ≡ ==
+    DIFFERENT,    // ≡ !=
+    INFERIEUR,    // ≡ <
+    INF_EGAL,     // ≡ <=
+    SUPERIEUR,    // ≡ >
+    SUP_EGAL,    // ≡ >=
+    
+    // Operadores lógicos
+    ET,          // ≡ &&
+    OU,           // ≡ ||
+    NON,         // = !
+    // ==============================================
+    // DELIMITADORES (mesmo comportamento que C++)
+    // ==============================================
+    LEFT_PAREN,      // ≡ (
+    RIGHT_PAREN,     // ≡ )
+    LEFT_BRACE,      // ≡ {
+    RIGHT_BRACE,     // ≡ }
+    CHOCHET_OUVRANT, // = [
+    CHOCHET_FERMANT, // = ]
+    COMMA,           // ≡ ,
+    DOT,             // ≡ .
+    SEMICOLON,       // ≡ ;
+    COLON,           // ≡ :
+
+    // ==============================================
+    // CONTROLE DO PARSER
+    // ==============================================
+    FIN_FICHIER,   // ≡ EOF
+    HERITE,
+    BREAK,
+    CONTINUE
+    
+
+
+};
+
+// ==============================================
+// ESTRUTURA DO TOKEN
+// ==============================================
+struct Token {
+    TokenType type;
+    std::string lexeme;
+    int line;
+};
+
+// ==============================================
+// CLASSE LEXER
+// ==============================================
+class Lexer {
+public:
+    explicit Lexer(const std::string& source);
+    std::vector<Token> scanTokens();
+
+private:
+    const std::string& source_;
+    std::vector<Token> tokens_;
+    size_t start_ = 0;
+    size_t current_ = 0;
+    size_t line_ = 1;
+
+    // Métodos auxiliares
+    bool isAtEnd() const;
+    char advance();
+    bool match(char expected);
+    char peek() const;
+    char peekNext() const;
+    void addToken(TokenType type);
+    void string();
+    void number();
+    void identifier();
+
+    // Mapa de palavras-chave
+    static const std::unordered_map<std::string, TokenType> keywords;
+};
+
+
+===== include/interpreter.h =====
+#pragma once
+
+#include "parser.h"
+#include "environment.h"
+#include "lexer.h"
+#include "value.h"
+#include <stdexcept>
+#include <vector>
+#include <string>
+
+class Interpreter : public ExprVisitor, public StmtVisitor {
+public:
+    Interpreter();
+    void interpret(const std::vector<Stmt*>& statements);
+
+    // Visitantes de Expressões
+    Value visitBinaryExpr(BinaryExpr* expr) override;
+    Value visitLiteralExpr(LiteralExpr* expr) override;
+    Value visitUnaryExpr(UnaryExpr* expr) override;
+    Value visitGroupingExpr(GroupingExpr* expr) override;
+    Value visitVariableExpr(VariableExpr* expr) override;
+    Value visitAssignExpr(AssignExpr* expr) override;
+    Value visitLogicalExpr(LogicalExpr* expr) override;
+    Value visitCallExpr(CallExpr* expr) override;
+    Value visitGetExpr(GetExpr* expr) override;
+    Value visitSetExpr(SetExpr* expr) override;
+    Value visitThisExpr(ThisExpr* expr) override;
+    Value visitSuperExpr(SuperExpr* expr) override;
+
+    // Visitantes de Comandos
+    void visitExprStmt(ExprStmt* stmt) override;
+    void visitVarDec1(VarDec1* stmt) override;
+    void visitBlockStmt(BlockStmt* stmt) override;
+    void visitIfStmt(IfStmt* stmt) override;
+    void visitWhileStmt(WhileStmt* stmt) override;
+    void visitForStmt(ForStmt* stmt) override;
+    void visitReturnStmt(ReturnStmt* stmt) override;
+    void visitFunctionDec1(FunctionDec1* stmt) override;
+    void visitClassDec1(ClassDec1* stmt) override;
+    void visitBreakStmt(BreakStmt* stmt) override;
+    void visitContinueStmt(ContinueStmt* stmt) override;
+
+private:
+    Environment globals;
+    Environment* environment = &globals;
+
+    Value evaluate(Expr* expr);
+    void execute(Stmt* stmt);
+    void executeBlock(const std::vector<Stmt*>& statements, Environment* env);
+
+    bool isTruthy(const Value& value);
+    bool isEqual(const Value& a, const Value& b);
+    void checkNumberOperand(const Token& op, const Value& operand);
+    void checkNumberOperands(const Token& op, const Value& left, const Value& right);
+    std::string stringify(const Value& value);
+
+    Value returnValue;
+    bool inLoop = false;
+};
+
+===== include/parser.h =====
+#pragma once
+#include <vector>
+#include <memory>
+#include <stdexcept>
+#include <functional>
+#include <unordered_map>
+#include "lexer.h"
+#include "type.h"
+#include "value.h"
+
+// ============================================================
+// FORWARD DECLARATIONS
+// ============================================================
+class Program;
+class ClassDec1;
+class FunctionDec1;
+class VarDec1;
+class BlockStmt;
+class ExprStmt;
+class IfStmt;
+class ForStmt;
+class ReturnStmt;
+class WhileStmt;
+class Expr;
+class AssignExpr;
+class BinaryExpr;
+class LogicalExpr;
+class CallExpr;
+class VariableExpr;
+class LiteralExpr;
+class GroupingExpr;
+class UnaryExpr;
+class GetExpr;
+class SetExpr;
+class ThisExpr;
+class SuperExpr;
+class BreakStmt;
+class ContinueStmt;
+
+// ============================================================
+// BASE CLASSES
+// ============================================================
+class Declaration {
+public:
+    virtual ~Declaration() = default;
+};
+
+class Expr {
+public:
+    virtual ~Expr() = default;
+    virtual Value accept(class ExprVisitor* visitor) = 0;
+};
+
+class Stmt : public Declaration {
+public:
+    virtual ~Stmt() = default;
+    virtual void accept(class StmtVisitor* visitor) = 0;
+};
+
+// ============================================================
+// ALIASES (depois das classes base)
+// ============================================================
+using ExprPtr = std::unique_ptr<Expr>;
+using StmtPtr = std::unique_ptr<Stmt>;
+using DeclPtr = std::unique_ptr<Declaration>;
+
+// ============================================================
+// VISITOR INTERFACES
+// ============================================================
+class ExprVisitor {
+public:
+    virtual ~ExprVisitor() = default;
+    virtual Value visitBinaryExpr(BinaryExpr* expr) = 0;
+    virtual Value visitLiteralExpr(LiteralExpr* expr) = 0;
+    virtual Value visitUnaryExpr(UnaryExpr* expr) = 0;
+    virtual Value visitGroupingExpr(GroupingExpr* expr) = 0;
+    virtual Value visitVariableExpr(VariableExpr* expr) = 0;
+    virtual Value visitAssignExpr(AssignExpr* expr) = 0;
+    virtual Value visitLogicalExpr(LogicalExpr* expr) = 0;
+    virtual Value visitCallExpr(CallExpr* expr) = 0;
+    virtual Value visitGetExpr(GetExpr* expr) = 0;
+    virtual Value visitSetExpr(SetExpr* expr) = 0;
+    virtual Value visitThisExpr(ThisExpr* expr) = 0;
+    virtual Value visitSuperExpr(SuperExpr* expr) = 0;
+};
+
+class StmtVisitor {
+public:
+    virtual ~StmtVisitor() = default;
+    virtual void visitExprStmt(ExprStmt* stmt) = 0;
+    virtual void visitVarDec1(VarDec1* stmt) = 0;
+    virtual void visitBlockStmt(BlockStmt* stmt) = 0;
+    virtual void visitIfStmt(IfStmt* stmt) = 0;
+    virtual void visitWhileStmt(WhileStmt* stmt) = 0;
+    virtual void visitForStmt(ForStmt* stmt) = 0;
+    virtual void visitReturnStmt(ReturnStmt* stmt) = 0;
+    virtual void visitFunctionDec1(FunctionDec1* stmt) = 0;
+    virtual void visitClassDec1(ClassDec1* stmt) = 0;
+    virtual void visitBreakStmt(BreakStmt* stmt) = 0;
+    virtual void visitContinueStmt(ContinueStmt* stmt) = 0;
+};
+
+class ParseError : public std::runtime_error {
+public:
+    ParseError(const Token& token, const std::string& message)
+        : std::runtime_error(message), token(token) {}
+    const Token token;
+};
+
+// ============================================================
+// PARSER CLASS
+// ============================================================
+class Parser {
+public:
+    explicit Parser(const std::vector<Token>& tokens);
+    std::unique_ptr<Program> parse();
+
+private:
+    const std::vector<Token>& tokens_;
+    size_t current_ = 0;
+    bool hadError = false;
+
+    bool isAtEnd() const;
+    const Token& peek() const;
+    const Token& previous() const;
+    const Token& advance();
+    bool check(TokenType type) const;
+    bool match(TokenType type);
+    bool match(const std::initializer_list<TokenType>& types);
+    const Token& consume(TokenType type, const std::string& message);
+    const Token& expect(TokenType type, const std::string& message) const;
+
+    ParseError error(const Token& token, const std::string& message) const;
+    void reportError(const Token& token, const std::string& message);
+    void synchronize();
+
+    StmtPtr parseDeclaration();
+    std::unique_ptr<ClassDec1> parseClasseDeclaration();
+    std::unique_ptr<FunctionDec1> parseFunctionDeclaration();
+    std::unique_ptr<VarDec1> parseVarDeclaration();
+    std::unique_ptr<Type> parseType();
+
+    StmtPtr parseStatement();
+    StmtPtr parseExprStmt();
+    std::unique_ptr<BlockStmt> parseBlock();
+    StmtPtr parseIfStatement();
+    StmtPtr parseForStatement();
+    StmtPtr parseWhileStatement();
+    StmtPtr parseReturnStatement();
+
+    ExprPtr parseExpression();
+    ExprPtr parseAssigment();
+    ExprPtr parseOr();
+    ExprPtr parseAnd();
+    ExprPtr parseEquality();
+    ExprPtr parseComparison();
+    ExprPtr parseTerm();
+    ExprPtr parseFactor();
+    ExprPtr parseUnary();
+    ExprPtr parseCall();
+    ExprPtr parsePrimary();
+    ExprPtr finishCall(ExprPtr callee);
+    std::vector<ExprPtr> parseArguments();
+    std::vector<Token> parseParameters();
+};
+
+// ============================================================
+// AST NODES – DECLARATIONS / STATEMENTS
+// ============================================================
+class Program : public Declaration {
+public:
+    std::vector<DeclPtr> declarations;
+};
+
+class ClassDec1 : public Stmt {
+public:
+    Token name;
+    std::unique_ptr<VariableExpr> superclass;
+    std::vector<std::unique_ptr<FunctionDec1>> methods;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitClassDec1(this); }
+};
+
+class FunctionDec1 : public Stmt {
+public:
+    FunctionDec1() = default;
+    FunctionDec1(Token name, std::vector<Token> params,
+                 std::unique_ptr<Type> returnType,
+                 std::unique_ptr<BlockStmt> body)
+        : name(name), params(std::move(params)),
+          returnType(std::move(returnType)), body(std::move(body)) {}
+
+    Token name;
+    std::vector<Token> params;
+    std::unique_ptr<Type> returnType;
+    std::unique_ptr<BlockStmt> body;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitFunctionDec1(this); }
+};
+
+class VarDec1 : public Stmt {
+public:
+    Token name;
+    ExprPtr initializer;
+    bool isConst;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitVarDec1(this); }
+};
+
+class BlockStmt : public Stmt {
+public:
+    std::vector<StmtPtr> statements;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitBlockStmt(this); }
+};
+
+class ExprStmt : public Stmt {
+public:
+    ExprPtr expression;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitExprStmt(this); }
+};
+
+class IfStmt : public Stmt {
+public:
+    ExprPtr condition;
+    StmtPtr thenBranch;
+    StmtPtr elseBranch;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitIfStmt(this); }
+};
+
+class ForStmt : public Stmt {
+public:
+    StmtPtr initializer;
+    ExprPtr condition;
+    ExprPtr increment;
+    StmtPtr body;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitForStmt(this); }
+};
+
+class WhileStmt : public Stmt {
+public:
+    ExprPtr condition;
+    StmtPtr body;
+
+    WhileStmt(ExprPtr condition, StmtPtr body)
+        : condition(std::move(condition)), body(std::move(body)) {}
+
+    void accept(StmtVisitor* visitor) override { visitor->visitWhileStmt(this); }
+};
+
+class ReturnStmt : public Stmt {
+public:
+    Token keyword;
+    ExprPtr value;
+
+    ReturnStmt(const Token& keyword, ExprPtr value)
+        : keyword(keyword), value(std::move(value)) {}
+
+    void accept(StmtVisitor* visitor) override { visitor->visitReturnStmt(this); }
+};
+
+// ============================================================
+// AST NODES – EXPRESSIONS
+// ============================================================
+class AssignExpr : public Expr {
+public:
+    Token name;
+    ExprPtr valeu;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitAssignExpr(this); }
+};
+
+class BinaryExpr : public Expr {
+public:
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitBinaryExpr(this); }
+};
+
+class LogicalExpr : public Expr {
+public:
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitLogicalExpr(this); }
+};
+
+class CallExpr : public Expr {
+public:
+    ExprPtr callee;
+    Token paren;
+    std::vector<ExprPtr> arguments;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitCallExpr(this); }
+};
+
+class VariableExpr : public Expr {
+public:
+    Token value;   // nome da variável
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitVariableExpr(this); }
+};
+
+class LiteralExpr : public Expr {
+public:
+    Value value;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitLiteralExpr(this); }
+};
+
+class GroupingExpr : public Expr {
+public:
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitGroupingExpr(this); }
+};
+
+class UnaryExpr : public Expr {
+public:
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitUnaryExpr(this); }
+};
+
+class GetExpr : public Expr {
+public:
+    ExprPtr object;
+    Token name;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitGetExpr(this); }
+};
+
+class SetExpr : public Expr {
+public:
+    ExprPtr object;
+    Token name;
+    ExprPtr valeu;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitSetExpr(this); }
+};
+
+class ThisExpr : public Expr {
+public:
+    Token keyword;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitThisExpr(this); }
+};
+
+class SuperExpr : public Expr {
+public:
+    Token keyword;
+    Token method;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitSuperExpr(this); }
+};
+
+class BreakStmt : public Stmt {
+public:
+    void accept(StmtVisitor* visitor) override { visitor->visitBreakStmt(this); }
+};
+
+class ContinueStmt : public Stmt {
+public:
+    void accept(StmtVisitor* visitor) override { visitor->visitContinueStmt(this); }
+};
+
+===== src/value.cpp =====
+#include "../include/value.h"
+
+Value::Value()
+    : type(ValueType::NIL),
+      data(std::monostate{})
+{
+}
+
+Value::Value(bool b)
+    : type(ValueType::BOOL),
+      data(b)
+{
+}
+
+Value::Value(int i)
+    : type(ValueType::NUMBER),
+      data(i)
+{
+}
+
+Value::Value(double d)
+    : type(ValueType::FLOAT),
+      data(d)
+{
+}
+
+Value::Value(const std::string& s)
+    : type(ValueType::STRING),
+      data(s)
+{
+}
+
+std::string Value::toString() const
+{
+    switch (type)
+    {
+        case ValueType::NIL:
+            return "nulle";
+
+        case ValueType::BOOL:
+            return std::get<bool>(data) ? "vrai" : "faux";
+
+        case ValueType::NUMBER:
+            return std::to_string(std::get<int>(data));
+
+        case ValueType::FLOAT:
+            return std::to_string(std::get<double>(data));
+
+        case ValueType::STRING:
+            return std::get<std::string>(data);
+
+        case ValueType::FUNCTION:
+            return "<fonction>";
+
+        case ValueType::NATIVE_FUNCTION:
+            return "<fonction_native>";
+    }
+
+    return "<inconnu>";
+}
+
+===== src/environment.cpp =====
+#include "../include/environment.h"
+#include <stdexcept>
+
+Environment::Environment(Environment* parent) : parent(parent) {}
+
+void Environment::define(const std::string& name, Value value) {
+    values[name] = value;
+}
+
+Value Environment::get(const Token& name) {
+    if (values.find(name.lexeme) != values.end()) {
+        return values[name.lexeme];
+    }
+    if (parent != nullptr) return parent->get(name);
+    throw std::runtime_error("Variável indefinida: " + name.lexeme);
+}
+
+void Environment::assign(const Token& name, Value value) {
+    if (values.find(name.lexeme) != values.end()) {
+        values[name.lexeme] = value;
+        return;
+    }
+    if (parent != nullptr) {
+        parent->assign(name, value);
+        return;
+    }
+    throw std::runtime_error("Atribuição a variável indefinida: " + name.lexeme);
+}
+
+===== src/main.cpp =====
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <vector>
+
+#include "../include/lexer.h"
+#include "../include/parser.h"
+#include "../include/interpreter.h"
+
+// Instância global do interpretador para manter o estado entre as execuções do REPL
+Interpreter interpreter;
+bool hadError = false;
+bool hadRuntimeError = false;
+
+// Função principal que executa o código
+void run(const std::string& source) {
+    Lexer lexer(source);
+    std::vector<Token> tokens = lexer.scanTokens();
+
+    Parser parser(tokens);
+    auto program = parser.parse();
+
+    if (hadError) return;
+
+    // Converte unique_ptr<Declaration> para Stmt* (ignorando declarações não-Stmt, como classes)
+    std::vector<Stmt*> stmts;
+    for (auto& decl : program->declarations) {
+        Stmt* stmt = dynamic_cast<Stmt*>(decl.get());
+        if (stmt) stmts.push_back(stmt);
+    }
+
+    interpreter.interpret(stmts);
+}
+
+// Executa um arquivo .pk
+void runFile(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Não foi possível abrir o arquivo: " << path << "\n";
+        exit(74);
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    run(buffer.str());
+
+    if (hadError) exit(65);
+    if (hadRuntimeError) exit(70);
+}
+
+// Executa o modo interativo (REPL)
+void runPrompt() {
+    std::string line;
+    std::cout << "====================================\n";
+    std::cout << " PurpleKai REPL - v0.1\n";
+    std::cout << " Digite 'sair' para encerrar.\n";
+    std::cout << "====================================\n";
+
+    for (;;) {
+        std::cout << "💜 > ";
+        if (!std::getline(std::cin, line)) break;
+        if (line == "sair" || line == "quit") break;
+        
+        run(line);
+        hadError = false; // Reseta o erro para não travar o loop
+    }
+}
+
+int main(int argc, char* argv[]) {
+    if (argc > 2) {
+        std::cout << "Uso: purplekai [script.pk]\n";
+        return 64;
+    } else if (argc == 2) {
+        runFile(argv[1]);
+    } else {
+        runPrompt();
+    }
+
+    return 0;
+}
+
+===== src/type.cpp =====
+#include "../include/type.h"
+#include <string>
+
+std::string Type::toString() const {
+    switch (kind) {
+        case TypeKind::INT: return "Int";
+        case TypeKind::FLOAT: return "Float";
+        case TypeKind::BOOL: return "Bool";
+        case TypeKind::STRING: return "String";
+        case TypeKind::VOID: return "Void";
+        case TypeKind::CLASS: return className.lexeme;
+        case TypeKind::LIST: return "[" + (elementType ? elementType->toString() : "?") + "]";
+        case TypeKind::OPTIONAL: return (elementType ? elementType->toString() : "?") + "?";
+        default: return "<unknown>";
+    }
+}
+
+===== src/lexer.cpp =====
+#include "lexer.h"
+#include <unordered_map>
+#include <iostream>
+
+Lexer::Lexer(const std::string& source) : source_(source) {}
+
+std::vector<Token> Lexer::scanTokens() {
+    while (!isAtEnd()) {
+        start_ = current_;
+        char c = advance();
+
+        if (std::isspace(c)) {
+            if (c == '\n') line_++;
+            continue;
+        }
+        // Comentário de linha --
+        if (c == '-' && peek() == '-') {
+            while (peek() != '\n' && !isAtEnd()) advance();
+    // Avança o newline se houver (opcional, pois o loop principal vai tratá-lo)
+            if (peek() == '\n') {
+                advance();
+                line_++;
+            }
+            continue;  // ignora o comentário
+        }
+       if (std::isalpha(c) || c == '_') {
+            identifier();
+        } else if (std::isdigit(c)) {
+            number();
+        } else {
+            switch (c) {
+                case '+': addToken(TokenType::PLUS); break;
+                case '-': addToken(TokenType::MOINS); break;
+                case '*': addToken(TokenType::FOIS); break;
+                case '/': addToken(TokenType::DIVISE); break;
+                case '%': addToken(TokenType::PERCENT); break;
+                case '=':
+                    addToken(match('=') ? TokenType::EGAL_EGAL : TokenType::EGAL);
+                    break;
+                case '!':
+                    addToken(match('=') ? TokenType::DIFFERENT : TokenType::NON);
+                    break;
+                case '<':
+                    addToken(match('=') ? TokenType::INF_EGAL : TokenType::INFERIEUR);
+                    break;
+                case '>':
+                    addToken(match('=') ? TokenType::SUP_EGAL : TokenType::SUPERIEUR);
+                    break;
+                case '&':
+                    if (match('&')) addToken(TokenType::ET);
+                    break;
+                case '|':
+                    if (match('|')) addToken(TokenType::OU);
+                    break;
+                case '(': addToken(TokenType::LEFT_PAREN); break;
+                case ')': addToken(TokenType::RIGHT_PAREN); break;
+                case '{': addToken(TokenType::LEFT_BRACE); break;
+                case '}': addToken(TokenType::RIGHT_BRACE); break;
+                case '[': addToken(TokenType::CHOCHET_OUVRANT); break;
+                case ']': addToken(TokenType::CHOCHET_FERMANT); break;
+                case ',': addToken(TokenType::COMMA); break;
+                case '.': addToken(TokenType::DOT); break;
+                case ';': addToken(TokenType::SEMICOLON); break;
+                case ':': addToken(TokenType::COLON); break;
+                case '"': string(); break;
+
+                default:
+                    std::cerr << "Caractere inesperado na linha " << line_ << ": '" << c << "'\n";
+                    break;
+            }
+        }
+    }
+
+    tokens_.push_back({TokenType::FIN_FICHIER, "", static_cast<int>(line_)});
+    return tokens_;
+}
+
+bool Lexer::isAtEnd() const {
+    return current_ >= source_.size();
+}
+
+char Lexer::advance() {
+    return source_[current_++];
+}
+
+bool Lexer::match(char expected) {
+    if (isAtEnd() || source_[current_] != expected) return false;
+    current_++;
+    return true;
+}
+
+char Lexer::peek() const {
+    if (isAtEnd()) return '\0';
+    return source_[current_];
+}
+
+char Lexer::peekNext() const {
+    if (current_ + 1 >= source_.size()) return '\0';
+    return source_[current_ + 1];
+}
+
+void Lexer::addToken(TokenType type) {
+    std::string text = source_.substr(start_, current_ - start_);
+    tokens_.push_back({type, text, static_cast<int>(line_)});
+}
+
+void Lexer::string() {
+    while (!isAtEnd() && peek() != '"') {
+        if (peek() == '\n') line_++;
+        advance();
+    }
+
+    if (isAtEnd()) {
+        std::cerr << "Erro: string não terminada na linha " << line_ << "\n";
+        return;
+    }
+
+    advance(); // fecha "
+    std::string value = source_.substr(start_ + 1, current_ - start_ - 2);
+    tokens_.push_back({TokenType::CHAINE, value, static_cast<int>(line_)});
+}
+
+void Lexer::number() {
+    while (std::isdigit(peek())) advance();
+
+    if (peek() == '.' && std::isdigit(peekNext())) {
+        advance();
+        while (std::isdigit(peek())) advance();
+        addToken(TokenType::DECIMAL);
+    } else {
+        addToken(TokenType::NOMBRE);
+    }
+}
+
+void Lexer::identifier() {
+    while (std::isalnum(peek()) || peek() == '_') advance();
+    std::string text = source_.substr(start_, current_ - start_);
+
+    auto it = keywords.find(text);
+    TokenType type = (it != keywords.end()) ? it->second : TokenType::IDENTIFIANT;
+    tokens_.push_back({type, text, static_cast<int>(line_)});
+}
+
+
+
+
+//mapa de PALAVRAS-CHAVE
+const std::unordered_map<std::string, TokenType> Lexer::keywords ={
+
+      {"classe", TokenType::CLASSE},
+      {"fonction", TokenType::FONCTION},
+      {"laisser", TokenType::LAISSER},
+      {"constant", TokenType:: CONSTANTE},
+      {"si", TokenType::SI},
+      {"sinon", TokenType::SINON},
+      {"pour", TokenType::POUR},
+      {"tantque", TokenType::TANTQUE},
+      {"retourner", TokenType::RETOURNER},
+      {"nouveau", TokenType::NOUVEAU},
+      {"vrai", TokenType::VRAI},
+      {"faux", TokenType::FAUX},
+      {"nulle", TokenType::NULLE},
+      {"identifiant", TokenType::IDENTIFIANT},
+      {"nombre", TokenType::NOMBRE},
+      {"decimal", TokenType::DECIMAL},
+      {"chaine", TokenType::CHAINE},
+      {"plus", TokenType::PLUS},
+      {"moins", TokenType::MOINS},
+      {"fois", TokenType::FOIS},
+      {"divise", TokenType::DIVISE},
+      {"percent", TokenType::PERCENT},
+      {"egal", TokenType::EGAL},
+      {"egal_egal", TokenType::EGAL_EGAL},
+      {"different", TokenType::DIFFERENT},
+      {"inferieur", TokenType::INFERIEUR},
+      {"inf_egal", TokenType:: INF_EGAL},
+      {"superieur", TokenType::SUPERIEUR},
+      {"sup_egal", TokenType::SUP_EGAL},
+      {"et", TokenType::ET},
+      {"ou", TokenType::OU},
+      {"non", TokenType::NON},
+      {"left_paren", TokenType::LEFT_PAREN},
+      {"right_paren", TokenType::RIGHT_PAREN},
+      {"left_brace", TokenType::LEFT_BRACE},
+      {"right_brace", TokenType::RIGHT_BRACE},
+      {"chochet_ouvrant", TokenType::CHOCHET_OUVRANT},
+      {"chochet_fermant", TokenType::CHOCHET_FERMANT},
+      {"comma", TokenType::COMMA},
+      {"dot", TokenType::DOT},
+      {"semicolon", TokenType::SEMICOLON},
+      {"colon", TokenType::COLON},
+      {"fin_fichier", TokenType::FIN_FICHIER},
+      {"herite", TokenType::HERITE},
+      {"break", TokenType::BREAK},
+      {"continue", TokenType::CONTINUE}
+};
+
+    
+     
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+===== src/parser.cpp =====
+#include "parser.h"
+#include "lexer.h"
+#include <cctype>
+#include <algorithm>
+#include <initializer_list>
+#include <iostream>
+
+//=================================================
+//IMPLEMENTAÇÃO DOS METODOS AUXILIARES
+//=================================================
+Parser::Parser(const std::vector<Token>& tokens)
+  : tokens_(tokens){}
+
+
+  /** Verifica se chegamos ao final da lista de tokens
+   * @return true se o token atual é END_OF_FILE
+   */
+  bool Parser::isAtEnd() const {
+    return peek().type == TokenType::FIN_FICHIER;
+  }
+
+/** Avança para o proximo token e retorna o token anterior
+ * @return Token consumido
+ */ 
+
+const Token& Parser::advance(){
+  if(!isAtEnd()) current_++;
+  return previous();
+}
+
+/** Obtém o token atual sem consumi-lo (loookhead)
+ * @return Token atual
+ */
+const Token& Parser::peek() const {
+  return tokens_[current_];
+}
+
+/** Verifica e consume o token se for do tipo especificado
+ * @param type Tipo de token esperado
+ * @return true se o token foi consumido
+ */
+
+bool Parser::match(TokenType type){
+  if (check(type)){
+    advance();
+    return true;
+  }
+  return false;
+}
+
+
+const Token& Parser::previous() const {
+    return tokens_[current_ - 1];
+}
+/** Verifivca e consome se qualquer um dos tipos corresponder
+ * @param types Lista de tipos possiveis
+ * @return true se algumn token foi consumido
+ */
+
+bool Parser::match(const std::initializer_list<TokenType>& types){
+  for (TokenType type : types){
+    if (check(type)){
+      advance();
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Consume obrigatoriamente um token do tipo especificado
+ * @param type Tipo esperado
+ * @param message Mensagem de erro se não corresponder
+ * @return Token consumido
+ * @throws ParseError se o tipo não corresponder
+ */
+const Token& Parser::consume(TokenType type, const std::string& message){
+  if (check(type)) return advance();
+  throw error(peek(), message);
+
+}
+
+/** Cria um objeto de erro de parsing
+ * @param token Token onde ocorreu o error
+ * @param message Descriçaõ do erro
+ * @return Objeto ParseError
+ */
+ParseError Parser::error(const Token& token, const std::string& message) const{
+  return ParseError(token, "[Linha"+ std::to_string(token.line)+ "]" + message);
+
+}
+
+/** Sincronoza após um erro - avança até encontrar um ponto de recuperação 
+ * Pontos de recuperação: inicios de declarações( class, func, var, etc.)
+ */
+void Parser::synchronize(){
+  advance();//Avança pelo token problematico
+
+  //Continua avançado até achar um ponto de Sincronozaçaõ 
+  while(!isAtEnd()){
+    if (previous().type == TokenType::SEMICOLON) return;
+
+    switch (peek().type){
+        case TokenType::CLASSE:
+        case TokenType::FONCTION:
+        case TokenType::LAISSER:
+        case TokenType::CONSTANTE:
+        case TokenType::SI:
+        case TokenType::POUR:
+        case TokenType::TANTQUE:
+        case TokenType::RETOURNER:
+             return;
+       default:
+             advance();
+
+    }
+  }
+
+}
+
+//=========================================================================
+//Métodos de parsing de declarações(top-level)
+//========================================================================
+//
+/** Método principal que inicia o parsing do programa
+ * @return AST do programa (nó raiz do Program)
+ */
+std::unique_ptr<Program> Parser::parse(){
+  auto program = std::make_unique<Program>();
+
+  //Processa todas as declarações até o final do arquivo]
+  while (!isAtEnd()){
+    try{
+      program->declarations.push_back(parseDeclaration());
+    }catch ( const ParseError& e){
+      //reporta o erro e Sincronoza para tentat Continuar
+      std::cerr << e.what() << std::endl;
+      synchronize();
+
+      //Em produção, coletaria todos os erros antes de abortar
+      throw;
+
+      }
+    }
+    return program;
+  
+}
+
+/** Parseia uma declaraçaõ de alto nivel
+ * @return Declaração (class, func, var ou statement)
+ */
+
+StmtPtr Parser::parseDeclaration(){
+  if (match(TokenType::CLASSE))   return parseClasseDeclaration();
+  if (match(TokenType::FONCTION)) return parseFunctionDeclaration();
+  if (match({TokenType::LAISSER, TokenType::CONSTANTE})){
+  //Retrocede pois o token já foi consumido pelo match 
+     current_--;
+     return parseVarDeclaration();
+  }
+  return parseStatement();
+}
+
+
+
+/** Parseia declaração de classe 
+ * Formato: "classe" ID [herite ID] "{" {método} "}"
+ */
+std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration() {Token name = consume(TokenType::IDENTIFIANT, "Esperado nome da classe após 'classe'");
+    // Herança opcional
+    std::unique_ptr<VariableExpr> superclass = nullptr;
+    if (match(TokenType::HERITE)) {
+        Token superName = consume(TokenType::IDENTIFIANT, "Esperado nome da superclasse após 'herite'");
+        superclass = std::make_unique<VariableExpr>();
+        superclass->value = superName; 
+    }
+    
+    consume(TokenType::LEFT_BRACE, "Esperado '{' antes do corpo da classe");
+
+    // Parseia os métodos da classe
+    std::vector<std::unique_ptr<FunctionDec1>> methods;
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        methods.push_back(parseFunctionDeclaration());
+    }
+
+    consume(TokenType::RIGHT_BRACE, "Esperado '}' após o corpo da classe");
+
+    auto classDec = std::make_unique<ClassDec1>();
+    classDec->name = name;
+    classDec->superclass = std::move(superclass);
+    classDec->methods = std::move(methods);
+    
+    return classDec;
+}
+
+std::unique_ptr<FunctionDec1> Parser::parseFunctionDeclaration(){
+   Token name = consume(TokenType::IDENTIFIANT, "Expect function name after 'fonction',.");
+   consume(TokenType::LEFT_PAREN, "Expect '(' after fnuction name.");
+
+   std::vector<Token> params;
+   if (!check(TokenType::RIGHT_PAREN)){
+     do{
+       if (params.size() >= 255){
+         reportError(peek(), "Can't have more than 255 parameters.");
+       }
+       Token param = consume(TokenType::IDENTIFIANT, "Expect parameter name");
+       params.push_back(param);
+     }while (match(TokenType::COMMA));
+   }
+   consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters");
+
+   //Optonal return type
+   std::unique_ptr<Type> returnType = nullptr;
+   if (match(TokenType::COLON)){
+     returnType = parseType();
+   }
+    
+   //Parse functional body
+   consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
+   auto body = parseBlock();
+
+   return std::make_unique<FunctionDec1>(name, std::move(params), std::move(returnType), std::move(body));
+}
+
+ std::unique_ptr<Type> Parser::parseType() {
+    if (match(TokenType::INT)) return std::make_unique<Type>(TypeKind::INT);
+    if (match(TokenType::FLOAT)) return std::make_unique<Type>(TypeKind::FLOAT);
+    if (match(TokenType::BOOL)) return std::make_unique<Type>(TypeKind::BOOL);
+    if (match(TokenType::STRING)) return std::make_unique<Type>(TypeKind::STRING);
+    if (match(TokenType::VOID)) return std::make_unique<Type>(TypeKind::VOID);
+    
+    if (match(TokenType::IDENTIFIANT)) {
+        return std::make_unique<Type>(TypeKind::CLASS, previous());
+    }
+    
+    if (match(TokenType::CHOCHET_OUVRANT)) {
+        auto elementType = parseType();
+        consume(TokenType:: CHOCHET_FERMANT, "Expect ']' after list type.");
+        return std::make_unique<Type>(TypeKind::LIST, std::move(elementType));
+    }
+    
+    throw error(peek(), "Invalid type specification");
+}
+
+StmtPtr Parser::parseWhileStatement() {
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'tantque'.");
+    auto condition = parseExpression();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+    
+    auto body = parseStatement();
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
+StmtPtr Parser::parseReturnStatement() {
+    Token keyword = previous();
+    ExprPtr value = nullptr;
+    
+    if (!check(TokenType::SEMICOLON)) {
+        value = parseExpression();
+    }
+    
+    consume(TokenType::SEMICOLON, "Expect ';' after return value.");
+    return std::make_unique<ReturnStmt>(keyword, std::move(value));
+}
+
+void Parser::reportError(const Token& token, const std::string& message) {
+    std::cerr << "[Line " << token.line << "] Error: " << message << "\n";
+    hadError = true;
+} 
+
+//========================================================================
+// REGRAS DE EXPRESSÕES (COM PRECEDÊNCIA)
+//========================================================================
+
+ExprPtr Parser::parseExpression() {
+    return parseAssigment();
+}
+
+ExprPtr Parser::parseAssigment() {
+    ExprPtr expr = parseOr();
+
+    if (match(TokenType::EGAL)) {
+        Token equals = previous();
+        ExprPtr value = parseAssigment();
+
+        // Verifica se a expressão à esquerda é uma variável válida para receber atribuição
+        if (auto varExpr = dynamic_cast<VariableExpr*>(expr.get())) {
+            Token name = varExpr->value;
+            auto assignExpr = std::make_unique<AssignExpr>();
+            assignExpr->name = name;
+            assignExpr->valeu = std::move(value); 
+            return assignExpr;
+        }
+
+        error(equals, "Alvo de atribuição inválido.");
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseOr() {
+    ExprPtr expr = parseAnd();
+
+    while (match(TokenType::OU)) {
+        Token op = previous();
+        ExprPtr right = parseAnd();
+        auto logical = std::make_unique<LogicalExpr>();
+        logical->left = std::move(expr);
+        logical->op = op;
+        logical->right = std::move(right);
+        expr = std::move(logical);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseAnd() {
+    ExprPtr expr = parseEquality();
+
+    while (match(TokenType::ET)) {
+        Token op = previous();
+        ExprPtr right = parseEquality();
+        auto logical = std::make_unique<LogicalExpr>();
+        logical->left = std::move(expr);
+        logical->op = op;
+        logical->right = std::move(right);
+        expr = std::move(logical);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseEquality() {
+    ExprPtr expr = parseComparison();
+
+    while (match({TokenType::DIFFERENT, TokenType::EGAL_EGAL})) {
+        Token op = previous();
+        ExprPtr right = parseComparison();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseComparison() {
+    ExprPtr expr = parseTerm();
+
+    while (match({TokenType::SUPERIEUR, TokenType::SUP_EGAL, TokenType::INFERIEUR, TokenType::INF_EGAL})) {
+        Token op = previous();
+        ExprPtr right = parseTerm();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseTerm() {
+    ExprPtr expr = parseFactor();
+
+    while (match({TokenType::MOINS, TokenType::PLUS})) {
+        Token op = previous();
+        ExprPtr right = parseFactor();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseFactor() {
+    ExprPtr expr = parseUnary();
+
+    while (match({TokenType::DIVISE, TokenType::FOIS, TokenType::PERCENT})) {
+        Token op = previous();
+        ExprPtr right = parseUnary();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+
+ExprPtr Parser::parseUnary() {
+    if (match({TokenType::NON, TokenType::MOINS})) {
+        Token op = previous();
+        ExprPtr right = parseUnary();
+        auto unary = std::make_unique<UnaryExpr>();
+        unary->op = op;
+        unary->right = std::move(right);
+        return unary;
+    }
+    return parseCall();
+}
+
+ExprPtr Parser::parseCall() {
+    ExprPtr expr = parsePrimary();
+
+    while (true) {
+        if (match(TokenType::LEFT_PAREN)) {
+            expr = finishCall(std::move(expr));
+        } else {
+            break;
+        }
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parsePrimary() {
+    if (match(TokenType::VRAI)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(true);
+        return expr;
+    }
+    if (match(TokenType::FAUX)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(false);
+        return expr;
+    }
+    if (match(TokenType::NULLE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value();  // nil
+        return expr;
+    }
+
+    if (match(TokenType::NOMBRE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        int intValue = std::stoi(previous().lexeme);
+        expr->value = Value(intValue);
+        return expr;
+    }
+    if (match(TokenType::DECIMAL)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        double doubleValue = std::stod(previous().lexeme);
+        expr->value = Value(doubleValue);
+        return expr;
+    }
+    if (match(TokenType::CHAINE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(previous().lexeme);
+        return expr;
+    }
+
+    if (match(TokenType::IDENTIFIANT)) {
+        auto expr = std::make_unique<VariableExpr>();
+        expr->value = previous();
+        return expr;
+    }
+
+    if (match(TokenType::LEFT_PAREN)) {
+        ExprPtr expr = parseExpression();
+        consume(TokenType::RIGHT_PAREN, "Esperado ')' após a expressão.");
+        auto group = std::make_unique<GroupingExpr>();
+        group->right = std::move(expr);
+        return group;
+    }
+
+    throw error(peek(), "Esperada uma expressão.");
+}
+
+
+// Método auxiliar para construir a chamada de função
+ExprPtr Parser::finishCall(ExprPtr callee) {
+    std::vector<ExprPtr> arguments;
+    if (!check(TokenType::RIGHT_PAREN)) {
+        do {
+            if (arguments.size() >= 255) {
+                error(peek(), "Não pode haver mais de 255 argumentos.");
+            }
+            arguments.push_back(parseExpression());
+        } while (match(TokenType::COMMA));
+    }
+
+    Token paren = consume(TokenType::RIGHT_PAREN, "Esperado ')' após argumentos.");
+    
+    auto callExpr = std::make_unique<CallExpr>();
+    callExpr->callee = std::move(callee);
+    callExpr->paren = paren;
+    callExpr->arguments = std::move(arguments);
+    
+    return callExpr;
+}
+
+// ==========================================
+// MÉTODOS FALTANTES NO PARSER
+// ==========================================
+
+bool Parser::check(TokenType type) const {
+    if (isAtEnd()) return false;
+    return peek().type == type;
+}
+
+std::unique_ptr<VarDec1> Parser::parseVarDeclaration() {
+    bool isConst = match(TokenType::CONSTANTE);
+    if (!isConst) consume(TokenType::LAISSER, "Esperado 'laisser' ou 'constant'");
+    
+    Token name = consume(TokenType::IDENTIFIANT, "Esperado nome da variável");
+    ExprPtr initializer = nullptr;
+    
+    if (match(TokenType::EGAL)) {
+        initializer = parseExpression();
+    }
+    
+    consume(TokenType::SEMICOLON, "Esperado ';' após declaração de variável");
+    auto varDec = std::make_unique<VarDec1>();
+    varDec->name = name;
+    varDec->initializer = std::move(initializer);
+    varDec->isConst = isConst;
+    return varDec;
+}
+
+StmtPtr Parser::parseStatement() {
+    if (match(TokenType::SI)) return parseIfStatement();
+    if (match(TokenType::POUR)) return parseForStatement();
+    if (match(TokenType::TANTQUE)) return parseWhileStatement();
+    if (match(TokenType::RETOURNER)) return parseReturnStatement();
+    if (match(TokenType::LEFT_BRACE)) return parseBlock();
+    if (match(TokenType::BREAK)) {
+        consume(TokenType::SEMICOLON, "Expected ';' after break");
+        return std::make_unique<BreakStmt>();
+    }
+    if (match(TokenType::CONTINUE)) {
+        consume(TokenType::SEMICOLON, "Expected ';' after continue");
+        return std::make_unique<ContinueStmt>();
+    }
+    return parseExprStmt();
+}
+
+StmtPtr Parser::parseExprStmt() {
+    ExprPtr expr = parseExpression();
+    consume(TokenType::SEMICOLON, "Esperado ';' após expressão.");
+    auto stmt = std::make_unique<ExprStmt>();
+    stmt->expression = std::move(expr);
+    return stmt;
+}
+
+std::unique_ptr<BlockStmt> Parser::parseBlock() {
+    auto block = std::make_unique<BlockStmt>();
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        block->statements.push_back(parseDeclaration());
+    }
+    consume(TokenType::RIGHT_BRACE, "Esperado '}' após o bloco.");
+    return block;
+}
+
+StmtPtr Parser::parseIfStatement() {
+    consume(TokenType::LEFT_PAREN, "Esperado '(' após 'si'.");
+    ExprPtr condition = parseExpression();
+    consume(TokenType::RIGHT_PAREN, "Esperado ')' após condição do 'si'.");
+    
+    StmtPtr thenBranch = parseStatement();
+    StmtPtr elseBranch = nullptr;
+    if (match(TokenType::SINON)) {
+        elseBranch = parseStatement();
+    }
+    
+    auto ifStmt = std::make_unique<IfStmt>();
+    ifStmt->condition = std::move(condition);
+    ifStmt->thenBranch = std::move(thenBranch);
+    ifStmt->elseBranch = std::move(elseBranch);
+    return ifStmt;
+}
+
+StmtPtr Parser::parseForStatement() {
+    consume(TokenType::LEFT_PAREN, "Esperado '(' após 'pour'.");
+    
+    StmtPtr initializer;
+    if (match(TokenType::SEMICOLON)) {
+        initializer = nullptr;
+    } else if (match({TokenType::LAISSER, TokenType::CONSTANTE})) {
+        current_--; // Volta para o parseVarDeclaration consumir
+        initializer = parseVarDeclaration();
+    } else {
+        initializer = parseExprStmt();
+    }
+
+    ExprPtr condition = nullptr;
+    if (!check(TokenType::SEMICOLON)) {
+        condition = parseExpression();
+    }
+    consume(TokenType::SEMICOLON, "Esperado ';' após condição do loop.");
+
+    ExprPtr increment = nullptr;
+    if (!check(TokenType::RIGHT_PAREN)) {
+        increment = parseExpression();
+    }
+    consume(TokenType::RIGHT_PAREN, "Esperado ')' após cláusulas do 'pour'.");
+
+    StmtPtr body = parseStatement();
+
+    auto forStmt = std::make_unique<ForStmt>();
+    forStmt->initializer = std::move(initializer);
+    forStmt->condition = std::move(condition);
+    forStmt->increment = std::move(increment);
+    forStmt->body = std::move(body);
+    return forStmt;
+}
+
+===== src/interpreter.cpp =====
+#include "../include/interpreter.h"
+#include "../include/parser.h" 
+#include <iostream>
+#include <stdexcept>
+
+// =====================================================================
+// 1. PONTO DE ENTRADA E CONTROLE DE BLOCOS
+// =====================================================================
+Interpreter::Interpreter() {
+    // Inicialização da classe (pode ficar vazio por enquanto)
+}
+
+class BreakException {};
+class ContinueException {};
+
+void Interpreter::interpret(const std::vector<Stmt*>& statements) {
+    try {
+        for (Stmt* statement : statements) {
+            execute(statement);
+        }
+    } catch (const std::runtime_error& error) {
+        std::cerr << error.what() << std::endl; 
+    }
+}
+
+Value Interpreter::evaluate(Expr* expr) {
+    if (expr == nullptr) return Value();
+    return expr->accept(this);
+}
+
+void Interpreter::execute(Stmt* stmt) {
+    if (stmt != nullptr) stmt->accept(this);
+}
+
+void Interpreter::executeBlock(const std::vector<Stmt*>& statements, Environment* env) {
+    Environment* previous = environment;
+    environment = env;
+
+    try {
+        for (Stmt* statement : statements) {
+            execute(statement);
+        }
+    } catch (...) {
+        environment = previous;
+        throw;
+    }
+
+    environment = previous; 
+}
+
+// =====================================================================
+// 2. VISITANTES DE EXPRESSÕES (MATEMÁTICA E LÓGICA)
+// =====================================================================
+
+Value Interpreter::visitBinaryExpr(BinaryExpr* expr) {
+    Value left = evaluate(expr->left.get());
+    Value right = evaluate(expr->right.get());
+
+    switch (expr->op.type) {
+        // --- ARITMÉTICA ---
+        case TokenType::PLUS:
+    // Concatenação mista: se um dos operandos for string, converte o outro
+            if (left.type == ValueType::STRING || right.type == ValueType::STRING) {
+                std::string leftStr = (left.type == ValueType::STRING) ? std::get<std::string>(left.data) : stringify(left);
+                std::string rightStr = (right.type == ValueType::STRING) ? std::get<std::string>(right.data) : stringify(right);
+            return Value(leftStr + rightStr);
+    }
+    // Soma numérica
+            if (left.type == ValueType::NUMBER && right.type == ValueType::NUMBER)
+                return Value(std::get<int>(left.data) + std::get<int>(right.data));
+            if (left.type == ValueType::FLOAT && right.type == ValueType::FLOAT)
+                return Value(std::get<double>(left.data) + std::get<double>(right.data));
+            throw std::runtime_error("Operandos devem ser dois números, dois floats ou pelo menos uma string.");
+        
+        case TokenType::MOINS:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) - std::get<int>(right.data));
+
+        case TokenType::FOIS:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) * std::get<int>(right.data));
+
+        case TokenType::DIVISE:
+            checkNumberOperands(expr->op, left, right);
+            if (std::get<int>(right.data) == 0) throw std::runtime_error("Divisão por zero não permitida.");
+            return Value(std::get<int>(left.data) / std::get<int>(right.data));
+
+        // --- COMPARAÇÃO ---
+        case TokenType::EGAL_EGAL:
+            return Value(isEqual(left, right));
+
+        case TokenType::DIFFERENT:
+            return Value(!isEqual(left, right));
+
+        case TokenType::INFERIEUR:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) < std::get<int>(right.data));
+
+        case TokenType::INF_EGAL:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) <= std::get<int>(right.data));
+
+        case TokenType::SUPERIEUR:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) > std::get<int>(right.data));
+
+        case TokenType::SUP_EGAL:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) >= std::get<int>(right.data));
+
+        default:
+            throw std::runtime_error("Operador binário não suportado.");
+    }
+}
+
+Value Interpreter::visitUnaryExpr(UnaryExpr* expr) {
+    Value right = evaluate(expr->right.get());
+
+    switch (expr->op.type) {
+        case TokenType::MOINS:
+            checkNumberOperand(expr->op, right);
+            return Value(-std::get<int>(right.data));
+        case TokenType::NON:
+            return Value(!isTruthy(right));
+        default:
+            throw std::runtime_error("Operador unário não implementado");
+    }
+}
+
+Value Interpreter::visitLiteralExpr(LiteralExpr* expr) {
+    return expr->value; 
+}
+
+Value Interpreter::visitGroupingExpr(GroupingExpr* expr) {
+    return evaluate(expr->right.get());
+}
+
+Value Interpreter::visitAssignExpr(AssignExpr* expr) {
+    Value value = evaluate(expr->valeu.get()); // Mantido 'valeu' conforme sua AST
+    environment->assign(expr->name, value); 
+    return value;
+}
+
+Value Interpreter::visitLogicalExpr(LogicalExpr* expr) {
+    Value left = evaluate(expr->left.get());
+    
+    if (expr->op.type == TokenType::OU) {
+        if (isTruthy(left)) return left;
+    } else { // TokenType::ET
+        if (!isTruthy(left)) return left;
+    }
+    
+    return evaluate(expr->right.get());
+}
+
+Value Interpreter::visitVariableExpr(VariableExpr* expr) { 
+    return environment->get(expr->value); // Corrigido de 'name' para 'identifier'
+}
+
+// Mocks temporários para features avançadas
+Value Interpreter::visitCallExpr(CallExpr* expr) { return Value(); } 
+Value Interpreter::visitGetExpr(GetExpr* expr) { return Value(); }
+Value Interpreter::visitSetExpr(SetExpr* expr) { return Value(); }
+Value Interpreter::visitThisExpr(ThisExpr* expr) { return Value(); }
+Value Interpreter::visitSuperExpr(SuperExpr* expr) { return Value(); }
+
+
+// =====================================================================
+// 3. VISITANTES DE COMANDOS (STATEMENTS)
+// =====================================================================
+
+void Interpreter::visitExprStmt(ExprStmt* stmt) {
+    Value value = evaluate(stmt->expression.get());
+    
+    // Comportamento do REPL: Se estivermos avaliando uma expressão solta no terminal,
+    // queremos ver o resultado impresso diretamente!
+    if (environment != nullptr) { 
+        std::cout << stringify(value) << std::endl;
+    }
+}
+
+void Interpreter::visitBreakStmt(BreakStmt* stmt) {
+    if (!inLoop) throw std::runtime_error("Break outside loop");
+    throw BreakException();   // precisamos de uma exceção especial
+}
+
+void Interpreter::visitContinueStmt(ContinueStmt* stmt) {
+    if (!inLoop) throw std::runtime_error("Continue outside loop");
+    throw ContinueException();
+}
+
+void Interpreter::visitVarDec1(VarDec1* stmt) {
+    Value value;
+    if (stmt->initializer != nullptr) {
+        value = evaluate(stmt->initializer.get());
+    }
+    environment->define(stmt->name.lexeme, value);
+}
+
+void Interpreter::visitBlockStmt(BlockStmt* stmt) {
+    Environment blockEnv(environment);
+    
+    // Extrai ponteiros brutos dos unique_ptrs para compatibilidade com executeBlock
+    std::vector<Stmt*> rawStatements;
+    rawStatements.reserve(stmt->statements.size());
+    for (const auto& statement : stmt->statements) {
+        rawStatements.push_back(statement.get());
+    }
+
+    executeBlock(rawStatements, &blockEnv);
+}
+
+void Interpreter::visitIfStmt(IfStmt* stmt) {
+    if (isTruthy(evaluate(stmt->condition.get()))) {
+        execute(stmt->thenBranch.get());
+    } else if (stmt->elseBranch != nullptr) {
+        execute(stmt->elseBranch.get());
+    }
+}
+
+void Interpreter::visitWhileStmt(WhileStmt* stmt) {
+    bool wasInLoop = inLoop;
+    inLoop = true;
+
+    try {
+        while (isTruthy(evaluate(stmt->condition.get()))) {
+            try {
+                execute(stmt->body.get());
+            } catch (BreakException&) {
+                break;
+            } catch (ContinueException&) {
+                continue;
+            }
+        }
+    } catch (...) {
+        inLoop = wasInLoop;
+        throw;
+    }
+
+    inLoop = wasInLoop;
+}
+
+
+void Interpreter::visitForStmt(ForStmt* stmt) {
+    Environment* previous = environment;
+    Environment forEnv(environment);
+    environment = &forEnv;
+
+    try {
+        if (stmt->initializer != nullptr) {
+            execute(stmt->initializer.get());
+        }
+
+        bool wasInLoop = inLoop;
+        inLoop = true;
+
+        while (stmt->condition == nullptr || isTruthy(evaluate(stmt->condition.get()))) {
+            try {
+                execute(stmt->body.get());
+            } catch (BreakException&) {
+                break;
+            } catch (ContinueException&) {
+                // Continue: apenas interrompe o corpo, o incremento será executado normalmente
+                // (não precisa fazer nada aqui, apenas sair do catch)
+            }
+            // Executa o incremento após o corpo (tanto se for normal quanto se for continue)
+            if (stmt->increment != nullptr) {
+                evaluate(stmt->increment.get());
+            }
+        }
+
+        inLoop = wasInLoop;
+    } catch (...) {
+        environment = previous;
+        throw;
+    }
+    environment = previous;
+}
+
+// Mocks obrigatórios para compilar
+void Interpreter::visitReturnStmt(ReturnStmt* stmt) {}
+void Interpreter::visitFunctionDec1(FunctionDec1* stmt) {}
+void Interpreter::visitClassDec1(ClassDec1* stmt) {}
+
+
+// =====================================================================
+// 4. FUNÇÕES UTILITÁRIAS
+// =====================================================================
+
+bool Interpreter::isTruthy(const Value& value) {
+    if (value.type == ValueType::NIL) return false;
+    if (value.type == ValueType::BOOL) return std::get<bool>(value.data);
+    return true;
+}
+
+bool Interpreter::isEqual(const Value& a, const Value& b) {
+    if (a.type != b.type) return false;
+    
+    switch (a.type) {
+        case ValueType::NIL: return true;
+        case ValueType::BOOL: return std::get<bool>(a.data) == std::get<bool>(b.data);
+        case ValueType::NUMBER: return std::get<int>(a.data) == std::get<int>(b.data);
+        case ValueType::STRING: return std::get<std::string>(a.data) == std::get<std::string>(b.data);
+        default: return false; 
+    }
+}
+
+void Interpreter::checkNumberOperand(const Token& op, const Value& operand) {
+    if (operand.type == ValueType::NUMBER) return;
+    throw std::runtime_error("Operando deve ser um número");
+}
+
+void Interpreter::checkNumberOperands(const Token& op, const Value& left, const Value& right) {
+    if (left.type == ValueType::NUMBER && right.type == ValueType::NUMBER) return;
+    throw std::runtime_error("Operandos devem ser números");
+}
+
+std::string Interpreter::stringify(const Value& value) {
+    switch (value.type) {
+        case ValueType::NIL: return "nul";
+        case ValueType::BOOL: return std::get<bool>(value.data) ? "vrai" : "faux";
+        case ValueType::NUMBER: return std::to_string(std::get<int>(value.data));
+        case ValueType::FLOAT: return std::to_string(std::get<double>(value.data));
+        case ValueType::STRING: return std::get<std::string>(value.data);
+        default: return "[object]";
+    }
+}
+
+===== Makefile =====
+# Nome do compilador
+CXX = g++
+
+# Flags de compilação (C++17 é recomendado por causa do std::variant e smart pointers)
+CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude
+
+# Diretórios
+SRC_DIR = src
+INC_DIR = include
+BUILD_DIR = build
+
+# Arquivos fonte e objetos
+SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
+
+# Nome do executável final
+TARGET = purplekai
+
+# Regra principal
+all: $(TARGET)
+
+# Linkagem do executável
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+# Compilação dos arquivos .cpp para .o
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Regra para limpar os arquivos gerados
+clean:
+	rm -rf $(BUILD_DIR) $(TARGET)
+
+.PHONY: all clean
+
+===== PurpleKai-0.1.0/Makefile =====
+# Nome do compilador
+CXX = g++
+
+# Flags de compilação (C++17 é recomendado por causa do std::variant e smart pointers)
+CXXFLAGS = -std=c++17 -Wall -Wextra -Iinclude
+
+# Diretórios
+SRC_DIR = src
+INC_DIR = include
+BUILD_DIR = build
+
+# Arquivos fonte e objetos
+SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+OBJS = $(patsubst $(SRC_DIR)/%.cpp,$(BUILD_DIR)/%.o,$(SRCS))
+
+# Nome do executável final
+TARGET = purplekai
+
+# Regra principal
+all: $(TARGET)
+
+# Linkagem do executável
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+# Compilação dos arquivos .cpp para .o
+$(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@
+
+# Regra para limpar os arquivos gerados
+clean:
+	rm -rf $(BUILD_DIR) $(TARGET)
+
+.PHONY: all clean
+
+===== PurpleKai-0.1.0/README.md =====
+PurpleKai - Linguagem de Programação em Francês
+![Logo](https://github.com/user-attachments/assets/de51d6ba-5b6a-46fb-afd9-f2cbf10a5dce)
+
+PurpleKai é uma linguagem de programação interpretada, orientada a objetos, com tipagem dinâmica e sintaxe em francês, projetada para ser acessível e expressiva.
+
+✨ Características Principais
+🎯 Sintaxe em francês - Mais natural para falantes do idioma
+
+🧩 Orientação a objetos - Classes, herança e polimorfismo
+
+🔄 Tipagem dinâmica - Flexível mas com verificação de tipos
+
+🧠 Coletor de lixo - Gerenciamento automático de memória
+
+⚡ Interoperabilidade - Interface com bibliotecas C++
+
+
+🤝 Como Contribuir
+Faça um fork do projeto
+
+Crie sua branch (git checkout -b feature/AmazingFeature)
+
+Commit suas mudanças (git commit -m 'Add some AmazingFeature')
+
+Push para a branch (git push origin feature/AmazingFeature)
+
+Abra um Pull Request
+
+
+📝 Licença
+Distribuído sob a licença MIT. Veja LICENSE para mais informações.
+
+🙌 Agradecimentos
+Total inpiração a Kailane Damasceno da Silva, minha melhor amiga e minha chama
+
+===== PurpleKai-0.1.0/include/type.h =====
+#pragma once
+#include "lexer.h"
+#include <string>
+#include <memory> // Necessário para usar std::unique_ptr
+
+enum class TypeKind {
+  INT,
+  FLOAT,
+  BOOL,
+  STRING,
+  VOID,
+  CLASS,
+  LIST,
+  OPTIONAL
+};
+
+class Type {
+public:
+  TypeKind kind; // Corrigido de TypeKinf para TypeKind
+  Token className; // Para tipos CLASS
+  std::unique_ptr<Type> elementType; // Para LIST ou OPTIONAL
+  
+  // Construtor para tipos simples
+  explicit Type(TypeKind kind) : kind(kind) {}
+
+  // Construtor para tipos de classe
+  Type(TypeKind kind, Token className)
+    : kind(kind), className(className) {}
+   
+  // Construtor para tipos compostos
+  // Corrigido de std::uniqye_ptr<Type para std::unique_ptr<Type>
+  Type(TypeKind kind, std::unique_ptr<Type> elementType)
+    : kind(kind), elementType(std::move(elementType)) {}
+
+  std::string toString() const;
+};
+
+===== PurpleKai-0.1.0/include/value.h =====
+#pragma once
+
+#include <variant>
+#include <string>
+#include <vector>
+#include <memory>
+#include <functional>
+
+#include "type.h"
+#include "lexer.h"
+
+// Forward declarations
+class Environment;
+class Interpreter;
+class BlockStmt;
+
+struct Value;
+
+enum class ValueType {
+    NIL,
+    BOOL,
+    NUMBER,
+    FLOAT,
+    STRING,
+    FUNCTION,
+    NATIVE_FUNCTION
+};
+
+class Function;
+
+using ValueBase = std::variant<
+    std::monostate,
+    bool,
+    int,
+    double,
+    std::string,
+    Function*,
+    std::function<Value(const std::vector<Value>&)>
+>;
+
+struct Value {
+    ValueType type;
+    ValueBase data;
+
+    Value();
+    Value(bool b);
+    Value(int i);
+    Value(double d);
+    Value(const std::string& s);
+
+    std::string toString() const;
+};
+
+class Function {
+public:
+    std::vector<Token> params;
+    std::unique_ptr<BlockStmt> body;
+    Environment* closure = nullptr;
+};
+
+===== PurpleKai-0.1.0/include/environment.h =====
+#pragma once
+#include <unordered_map>
+#include <string>
+#include <memory>
+#include "value.h"
+
+class Environment{
+  std::unordered_map<std::string, Value> values;
+  Environment* parent = nullptr;
+
+  public:
+    Environment(Environment* parent = nullptr);
+    void define(const std::string& name, Value value);
+    Value get(const Token& name);
+    void assign(const Token& name, Value value);
+};
+
+
+
+
+===== PurpleKai-0.1.0/include/lexer.h =====
+// include/lexer.h
+#pragma once
+
+#include <string>
+#include <vector>
+#include <cctype>
+#include <unordered_map>
+
+enum class TokenType {
+    // ==============================================
+    // PALAVRAS-CHAVE (com equivalentes em C++)
+    // ==============================================
+    CLASSE,       // ≡ class (C++)
+    FONCTION,     // ≡ (métodos em C++, sem equivalente exato para declaração)
+    LAISSER,      // ≡ auto (mas com tipagem dinâmica)
+    CONSTANTE,    // ≡ constexpr/const (dependendo do uso)
+    
+    // Controle de fluxo
+    SI,           // ≡ if
+    SINON,        // ≡ else
+    POUR,         // ≡ for (mais próximo do range-based for do C++)
+    TANTQUE,      // ≡ while
+    RETOURNER,    // ≡ return
+    
+    // Valores e alocação
+    NOUVEAU,      // ≡ new (mas com GC automático)
+    VRAI,         // ≡ true
+    FAUX,         // ≡ false
+    NULLE,        // ≡ nullptr (observação: "nulle" em francês é feminino)
+
+    // ==============================================
+    // IDENTIFICADORES E LITERAIS
+    // ==============================================
+    IDENTIFIANT,  // ≡ identificadores C++
+    NOMBRE,       // ≡ int/long (números inteiros)
+    DECIMAL,      // ≡ float/double
+    CHAINE,       // ≡ std::string
+    
+    INT,
+    FLOAT,
+    BOOL,
+    STRING,
+    VOID,
+    // ==============================================
+    // OPERADORES (mesmos símbolos, nomes em francês)
+    // ==============================================
+    PLUS,         // ≡ +
+    MOINS,        // ≡ -
+    FOIS,         // ≡ *
+    DIVISE,        // ≡ /
+    PERCENT,      // ≡ %
+    
+    EGAL,         // ≡ =
+    EGAL_EGAL,    // ≡ ==
+    DIFFERENT,    // ≡ !=
+    INFERIEUR,    // ≡ <
+    INF_EGAL,     // ≡ <=
+    SUPERIEUR,    // ≡ >
+    SUP_EGAL,    // ≡ >=
+    
+    // Operadores lógicos
+    ET,          // ≡ &&
+    OU,           // ≡ ||
+    NON,         // = !
+    // ==============================================
+    // DELIMITADORES (mesmo comportamento que C++)
+    // ==============================================
+    LEFT_PAREN,      // ≡ (
+    RIGHT_PAREN,     // ≡ )
+    LEFT_BRACE,      // ≡ {
+    RIGHT_BRACE,     // ≡ }
+    CHOCHET_OUVRANT, // = [
+    CHOCHET_FERMANT, // = ]
+    COMMA,           // ≡ ,
+    DOT,             // ≡ .
+    SEMICOLON,       // ≡ ;
+    COLON,           // ≡ :
+
+    // ==============================================
+    // CONTROLE DO PARSER
+    // ==============================================
+    FIN_FICHIER,   // ≡ EOF
+    HERITE,
+    BREAK,
+    CONTINUE
+    
+
+
+};
+
+// ==============================================
+// ESTRUTURA DO TOKEN
+// ==============================================
+struct Token {
+    TokenType type;
+    std::string lexeme;
+    int line;
+};
+
+// ==============================================
+// CLASSE LEXER
+// ==============================================
+class Lexer {
+public:
+    explicit Lexer(const std::string& source);
+    std::vector<Token> scanTokens();
+
+private:
+    const std::string& source_;
+    std::vector<Token> tokens_;
+    size_t start_ = 0;
+    size_t current_ = 0;
+    size_t line_ = 1;
+
+    // Métodos auxiliares
+    bool isAtEnd() const;
+    char advance();
+    bool match(char expected);
+    char peek() const;
+    char peekNext() const;
+    void addToken(TokenType type);
+    void string();
+    void number();
+    void identifier();
+
+    // Mapa de palavras-chave
+    static const std::unordered_map<std::string, TokenType> keywords;
+};
+
+
+===== PurpleKai-0.1.0/include/interpreter.h =====
+#pragma once
+
+#include "parser.h"
+#include "environment.h"
+#include "lexer.h"
+#include "value.h"
+#include <stdexcept>
+#include <vector>
+#include <string>
+
+class Interpreter : public ExprVisitor, public StmtVisitor {
+public:
+    Interpreter();
+    void interpret(const std::vector<Stmt*>& statements);
+
+    // Visitantes de Expressões
+    Value visitBinaryExpr(BinaryExpr* expr) override;
+    Value visitLiteralExpr(LiteralExpr* expr) override;
+    Value visitUnaryExpr(UnaryExpr* expr) override;
+    Value visitGroupingExpr(GroupingExpr* expr) override;
+    Value visitVariableExpr(VariableExpr* expr) override;
+    Value visitAssignExpr(AssignExpr* expr) override;
+    Value visitLogicalExpr(LogicalExpr* expr) override;
+    Value visitCallExpr(CallExpr* expr) override;
+    Value visitGetExpr(GetExpr* expr) override;
+    Value visitSetExpr(SetExpr* expr) override;
+    Value visitThisExpr(ThisExpr* expr) override;
+    Value visitSuperExpr(SuperExpr* expr) override;
+
+    // Visitantes de Comandos
+    void visitExprStmt(ExprStmt* stmt) override;
+    void visitVarDec1(VarDec1* stmt) override;
+    void visitBlockStmt(BlockStmt* stmt) override;
+    void visitIfStmt(IfStmt* stmt) override;
+    void visitWhileStmt(WhileStmt* stmt) override;
+    void visitForStmt(ForStmt* stmt) override;
+    void visitReturnStmt(ReturnStmt* stmt) override;
+    void visitFunctionDec1(FunctionDec1* stmt) override;
+    void visitClassDec1(ClassDec1* stmt) override;
+    void visitBreakStmt(BreakStmt* stmt) override;
+    void visitContinueStmt(ContinueStmt* stmt) override;
+
+private:
+    Environment globals;
+    Environment* environment = &globals;
+
+    Value evaluate(Expr* expr);
+    void execute(Stmt* stmt);
+    void executeBlock(const std::vector<Stmt*>& statements, Environment* env);
+
+    bool isTruthy(const Value& value);
+    bool isEqual(const Value& a, const Value& b);
+    void checkNumberOperand(const Token& op, const Value& operand);
+    void checkNumberOperands(const Token& op, const Value& left, const Value& right);
+    std::string stringify(const Value& value);
+
+    Value returnValue;
+    bool inLoop = false;
+};
+
+===== PurpleKai-0.1.0/include/parser.h =====
+#pragma once
+#include <vector>
+#include <memory>
+#include <stdexcept>
+#include <functional>
+#include <unordered_map>
+#include "lexer.h"
+#include "type.h"
+#include "value.h"
+
+// ============================================================
+// FORWARD DECLARATIONS
+// ============================================================
+class Program;
+class ClassDec1;
+class FunctionDec1;
+class VarDec1;
+class BlockStmt;
+class ExprStmt;
+class IfStmt;
+class ForStmt;
+class ReturnStmt;
+class WhileStmt;
+class Expr;
+class AssignExpr;
+class BinaryExpr;
+class LogicalExpr;
+class CallExpr;
+class VariableExpr;
+class LiteralExpr;
+class GroupingExpr;
+class UnaryExpr;
+class GetExpr;
+class SetExpr;
+class ThisExpr;
+class SuperExpr;
+class BreakStmt;
+class ContinueStmt;
+
+// ============================================================
+// BASE CLASSES
+// ============================================================
+class Declaration {
+public:
+    virtual ~Declaration() = default;
+};
+
+class Expr {
+public:
+    virtual ~Expr() = default;
+    virtual Value accept(class ExprVisitor* visitor) = 0;
+};
+
+class Stmt : public Declaration {
+public:
+    virtual ~Stmt() = default;
+    virtual void accept(class StmtVisitor* visitor) = 0;
+};
+
+// ============================================================
+// ALIASES (depois das classes base)
+// ============================================================
+using ExprPtr = std::unique_ptr<Expr>;
+using StmtPtr = std::unique_ptr<Stmt>;
+using DeclPtr = std::unique_ptr<Declaration>;
+
+// ============================================================
+// VISITOR INTERFACES
+// ============================================================
+class ExprVisitor {
+public:
+    virtual ~ExprVisitor() = default;
+    virtual Value visitBinaryExpr(BinaryExpr* expr) = 0;
+    virtual Value visitLiteralExpr(LiteralExpr* expr) = 0;
+    virtual Value visitUnaryExpr(UnaryExpr* expr) = 0;
+    virtual Value visitGroupingExpr(GroupingExpr* expr) = 0;
+    virtual Value visitVariableExpr(VariableExpr* expr) = 0;
+    virtual Value visitAssignExpr(AssignExpr* expr) = 0;
+    virtual Value visitLogicalExpr(LogicalExpr* expr) = 0;
+    virtual Value visitCallExpr(CallExpr* expr) = 0;
+    virtual Value visitGetExpr(GetExpr* expr) = 0;
+    virtual Value visitSetExpr(SetExpr* expr) = 0;
+    virtual Value visitThisExpr(ThisExpr* expr) = 0;
+    virtual Value visitSuperExpr(SuperExpr* expr) = 0;
+};
+
+class StmtVisitor {
+public:
+    virtual ~StmtVisitor() = default;
+    virtual void visitExprStmt(ExprStmt* stmt) = 0;
+    virtual void visitVarDec1(VarDec1* stmt) = 0;
+    virtual void visitBlockStmt(BlockStmt* stmt) = 0;
+    virtual void visitIfStmt(IfStmt* stmt) = 0;
+    virtual void visitWhileStmt(WhileStmt* stmt) = 0;
+    virtual void visitForStmt(ForStmt* stmt) = 0;
+    virtual void visitReturnStmt(ReturnStmt* stmt) = 0;
+    virtual void visitFunctionDec1(FunctionDec1* stmt) = 0;
+    virtual void visitClassDec1(ClassDec1* stmt) = 0;
+    virtual void visitBreakStmt(BreakStmt* stmt) = 0;
+    virtual void visitContinueStmt(ContinueStmt* stmt) = 0;
+};
+
+class ParseError : public std::runtime_error {
+public:
+    ParseError(const Token& token, const std::string& message)
+        : std::runtime_error(message), token(token) {}
+    const Token token;
+};
+
+// ============================================================
+// PARSER CLASS
+// ============================================================
+class Parser {
+public:
+    explicit Parser(const std::vector<Token>& tokens);
+    std::unique_ptr<Program> parse();
+
+private:
+    const std::vector<Token>& tokens_;
+    size_t current_ = 0;
+    bool hadError = false;
+
+    bool isAtEnd() const;
+    const Token& peek() const;
+    const Token& previous() const;
+    const Token& advance();
+    bool check(TokenType type) const;
+    bool match(TokenType type);
+    bool match(const std::initializer_list<TokenType>& types);
+    const Token& consume(TokenType type, const std::string& message);
+    const Token& expect(TokenType type, const std::string& message) const;
+
+    ParseError error(const Token& token, const std::string& message) const;
+    void reportError(const Token& token, const std::string& message);
+    void synchronize();
+
+    StmtPtr parseDeclaration();
+    std::unique_ptr<ClassDec1> parseClasseDeclaration();
+    std::unique_ptr<FunctionDec1> parseFunctionDeclaration();
+    std::unique_ptr<VarDec1> parseVarDeclaration();
+    std::unique_ptr<Type> parseType();
+
+    StmtPtr parseStatement();
+    StmtPtr parseExprStmt();
+    std::unique_ptr<BlockStmt> parseBlock();
+    StmtPtr parseIfStatement();
+    StmtPtr parseForStatement();
+    StmtPtr parseWhileStatement();
+    StmtPtr parseReturnStatement();
+
+    ExprPtr parseExpression();
+    ExprPtr parseAssigment();
+    ExprPtr parseOr();
+    ExprPtr parseAnd();
+    ExprPtr parseEquality();
+    ExprPtr parseComparison();
+    ExprPtr parseTerm();
+    ExprPtr parseFactor();
+    ExprPtr parseUnary();
+    ExprPtr parseCall();
+    ExprPtr parsePrimary();
+    ExprPtr finishCall(ExprPtr callee);
+    std::vector<ExprPtr> parseArguments();
+    std::vector<Token> parseParameters();
+};
+
+// ============================================================
+// AST NODES – DECLARATIONS / STATEMENTS
+// ============================================================
+class Program : public Declaration {
+public:
+    std::vector<DeclPtr> declarations;
+};
+
+class ClassDec1 : public Stmt {
+public:
+    Token name;
+    std::unique_ptr<VariableExpr> superclass;
+    std::vector<std::unique_ptr<FunctionDec1>> methods;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitClassDec1(this); }
+};
+
+class FunctionDec1 : public Stmt {
+public:
+    FunctionDec1() = default;
+    FunctionDec1(Token name, std::vector<Token> params,
+                 std::unique_ptr<Type> returnType,
+                 std::unique_ptr<BlockStmt> body)
+        : name(name), params(std::move(params)),
+          returnType(std::move(returnType)), body(std::move(body)) {}
+
+    Token name;
+    std::vector<Token> params;
+    std::unique_ptr<Type> returnType;
+    std::unique_ptr<BlockStmt> body;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitFunctionDec1(this); }
+};
+
+class VarDec1 : public Stmt {
+public:
+    Token name;
+    ExprPtr initializer;
+    bool isConst;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitVarDec1(this); }
+};
+
+class BlockStmt : public Stmt {
+public:
+    std::vector<StmtPtr> statements;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitBlockStmt(this); }
+};
+
+class ExprStmt : public Stmt {
+public:
+    ExprPtr expression;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitExprStmt(this); }
+};
+
+class IfStmt : public Stmt {
+public:
+    ExprPtr condition;
+    StmtPtr thenBranch;
+    StmtPtr elseBranch;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitIfStmt(this); }
+};
+
+class ForStmt : public Stmt {
+public:
+    StmtPtr initializer;
+    ExprPtr condition;
+    ExprPtr increment;
+    StmtPtr body;
+
+    void accept(StmtVisitor* visitor) override { visitor->visitForStmt(this); }
+};
+
+class WhileStmt : public Stmt {
+public:
+    ExprPtr condition;
+    StmtPtr body;
+
+    WhileStmt(ExprPtr condition, StmtPtr body)
+        : condition(std::move(condition)), body(std::move(body)) {}
+
+    void accept(StmtVisitor* visitor) override { visitor->visitWhileStmt(this); }
+};
+
+class ReturnStmt : public Stmt {
+public:
+    Token keyword;
+    ExprPtr value;
+
+    ReturnStmt(const Token& keyword, ExprPtr value)
+        : keyword(keyword), value(std::move(value)) {}
+
+    void accept(StmtVisitor* visitor) override { visitor->visitReturnStmt(this); }
+};
+
+// ============================================================
+// AST NODES – EXPRESSIONS
+// ============================================================
+class AssignExpr : public Expr {
+public:
+    Token name;
+    ExprPtr valeu;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitAssignExpr(this); }
+};
+
+class BinaryExpr : public Expr {
+public:
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitBinaryExpr(this); }
+};
+
+class LogicalExpr : public Expr {
+public:
+    ExprPtr left;
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitLogicalExpr(this); }
+};
+
+class CallExpr : public Expr {
+public:
+    ExprPtr callee;
+    Token paren;
+    std::vector<ExprPtr> arguments;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitCallExpr(this); }
+};
+
+class VariableExpr : public Expr {
+public:
+    Token value;   // nome da variável
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitVariableExpr(this); }
+};
+
+class LiteralExpr : public Expr {
+public:
+    Value value;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitLiteralExpr(this); }
+};
+
+class GroupingExpr : public Expr {
+public:
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitGroupingExpr(this); }
+};
+
+class UnaryExpr : public Expr {
+public:
+    Token op;
+    ExprPtr right;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitUnaryExpr(this); }
+};
+
+class GetExpr : public Expr {
+public:
+    ExprPtr object;
+    Token name;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitGetExpr(this); }
+};
+
+class SetExpr : public Expr {
+public:
+    ExprPtr object;
+    Token name;
+    ExprPtr valeu;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitSetExpr(this); }
+};
+
+class ThisExpr : public Expr {
+public:
+    Token keyword;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitThisExpr(this); }
+};
+
+class SuperExpr : public Expr {
+public:
+    Token keyword;
+    Token method;
+
+    Value accept(ExprVisitor* visitor) override { return visitor->visitSuperExpr(this); }
+};
+
+class BreakStmt : public Stmt {
+public:
+    void accept(StmtVisitor* visitor) override { visitor->visitBreakStmt(this); }
+};
+
+class ContinueStmt : public Stmt {
+public:
+    void accept(StmtVisitor* visitor) override { visitor->visitContinueStmt(this); }
+};
+
+===== PurpleKai-0.1.0/src/value.cpp =====
+#include "../include/value.h"
+
+Value::Value()
+    : type(ValueType::NIL),
+      data(std::monostate{})
+{
+}
+
+Value::Value(bool b)
+    : type(ValueType::BOOL),
+      data(b)
+{
+}
+
+Value::Value(int i)
+    : type(ValueType::NUMBER),
+      data(i)
+{
+}
+
+Value::Value(double d)
+    : type(ValueType::FLOAT),
+      data(d)
+{
+}
+
+Value::Value(const std::string& s)
+    : type(ValueType::STRING),
+      data(s)
+{
+}
+
+std::string Value::toString() const
+{
+    switch (type)
+    {
+        case ValueType::NIL:
+            return "nulle";
+
+        case ValueType::BOOL:
+            return std::get<bool>(data) ? "vrai" : "faux";
+
+        case ValueType::NUMBER:
+            return std::to_string(std::get<int>(data));
+
+        case ValueType::FLOAT:
+            return std::to_string(std::get<double>(data));
+
+        case ValueType::STRING:
+            return std::get<std::string>(data);
+
+        case ValueType::FUNCTION:
+            return "<fonction>";
+
+        case ValueType::NATIVE_FUNCTION:
+            return "<fonction_native>";
+    }
+
+    return "<inconnu>";
+}
+
+===== PurpleKai-0.1.0/src/environment.cpp =====
+#include "../include/environment.h"
+#include <stdexcept>
+
+Environment::Environment(Environment* parent) : parent(parent) {}
+
+void Environment::define(const std::string& name, Value value) {
+    values[name] = value;
+}
+
+Value Environment::get(const Token& name) {
+    if (values.find(name.lexeme) != values.end()) {
+        return values[name.lexeme];
+    }
+    if (parent != nullptr) return parent->get(name);
+    throw std::runtime_error("Variável indefinida: " + name.lexeme);
+}
+
+void Environment::assign(const Token& name, Value value) {
+    if (values.find(name.lexeme) != values.end()) {
+        values[name.lexeme] = value;
+        return;
+    }
+    if (parent != nullptr) {
+        parent->assign(name, value);
+        return;
+    }
+    throw std::runtime_error("Atribuição a variável indefinida: " + name.lexeme);
+}
+
+===== PurpleKai-0.1.0/src/main.cpp =====
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <sstream>
+#include <vector>
+
+#include "../include/lexer.h"
+#include "../include/parser.h"
+#include "../include/interpreter.h"
+
+// Instância global do interpretador para manter o estado entre as execuções do REPL
+Interpreter interpreter;
+bool hadError = false;
+bool hadRuntimeError = false;
+
+// Função principal que executa o código
+void run(const std::string& source) {
+    Lexer lexer(source);
+    std::vector<Token> tokens = lexer.scanTokens();
+
+    Parser parser(tokens);
+    auto program = parser.parse();
+
+    if (hadError) return;
+
+    // Converte unique_ptr<Declaration> para Stmt* (ignorando declarações não-Stmt, como classes)
+    std::vector<Stmt*> stmts;
+    for (auto& decl : program->declarations) {
+        Stmt* stmt = dynamic_cast<Stmt*>(decl.get());
+        if (stmt) stmts.push_back(stmt);
+    }
+
+    interpreter.interpret(stmts);
+}
+
+// Executa um arquivo .pk
+void runFile(const std::string& path) {
+    std::ifstream file(path);
+    if (!file.is_open()) {
+        std::cerr << "Não foi possível abrir o arquivo: " << path << "\n";
+        exit(74);
+    }
+
+    std::stringstream buffer;
+    buffer << file.rdbuf();
+    run(buffer.str());
+
+    if (hadError) exit(65);
+    if (hadRuntimeError) exit(70);
+}
+
+// Executa o modo interativo (REPL)
+void runPrompt() {
+    std::string line;
+    std::cout << "====================================\n";
+    std::cout << " PurpleKai REPL - v0.1\n";
+    std::cout << " Digite 'sair' para encerrar.\n";
+    std::cout << "====================================\n";
+
+    for (;;) {
+        std::cout << "💜 > ";
+        if (!std::getline(std::cin, line)) break;
+        if (line == "sair" || line == "quit") break;
+        
+        run(line);
+        hadError = false; // Reseta o erro para não travar o loop
+    }
+}
+
+int main(int argc, char* argv[]) {
+    if (argc > 2) {
+        std::cout << "Uso: purplekai [script.pk]\n";
+        return 64;
+    } else if (argc == 2) {
+        runFile(argv[1]);
+    } else {
+        runPrompt();
+    }
+
+    return 0;
+}
+
+===== PurpleKai-0.1.0/src/type.cpp =====
+#include "../include/type.h"
+#include <string>
+
+std::string Type::toString() const {
+    switch (kind) {
+        case TypeKind::INT: return "Int";
+        case TypeKind::FLOAT: return "Float";
+        case TypeKind::BOOL: return "Bool";
+        case TypeKind::STRING: return "String";
+        case TypeKind::VOID: return "Void";
+        case TypeKind::CLASS: return className.lexeme;
+        case TypeKind::LIST: return "[" + (elementType ? elementType->toString() : "?") + "]";
+        case TypeKind::OPTIONAL: return (elementType ? elementType->toString() : "?") + "?";
+        default: return "<unknown>";
+    }
+}
+
+===== PurpleKai-0.1.0/src/lexer.cpp =====
+#include "lexer.h"
+#include <unordered_map>
+#include <iostream>
+
+Lexer::Lexer(const std::string& source) : source_(source) {}
+
+std::vector<Token> Lexer::scanTokens() {
+    while (!isAtEnd()) {
+        start_ = current_;
+        char c = advance();
+
+        if (std::isspace(c)) {
+            if (c == '\n') line_++;
+            continue;
+        }
+        // Comentário de linha --
+        if (c == '-' && peek() == '-') {
+            while (peek() != '\n' && !isAtEnd()) advance();
+    // Avança o newline se houver (opcional, pois o loop principal vai tratá-lo)
+            if (peek() == '\n') {
+                advance();
+                line_++;
+            }
+            continue;  // ignora o comentário
+        }
+       if (std::isalpha(c) || c == '_') {
+            identifier();
+        } else if (std::isdigit(c)) {
+            number();
+        } else {
+            switch (c) {
+                case '+': addToken(TokenType::PLUS); break;
+                case '-': addToken(TokenType::MOINS); break;
+                case '*': addToken(TokenType::FOIS); break;
+                case '/': addToken(TokenType::DIVISE); break;
+                case '%': addToken(TokenType::PERCENT); break;
+                case '=':
+                    addToken(match('=') ? TokenType::EGAL_EGAL : TokenType::EGAL);
+                    break;
+                case '!':
+                    addToken(match('=') ? TokenType::DIFFERENT : TokenType::NON);
+                    break;
+                case '<':
+                    addToken(match('=') ? TokenType::INF_EGAL : TokenType::INFERIEUR);
+                    break;
+                case '>':
+                    addToken(match('=') ? TokenType::SUP_EGAL : TokenType::SUPERIEUR);
+                    break;
+                case '&':
+                    if (match('&')) addToken(TokenType::ET);
+                    break;
+                case '|':
+                    if (match('|')) addToken(TokenType::OU);
+                    break;
+                case '(': addToken(TokenType::LEFT_PAREN); break;
+                case ')': addToken(TokenType::RIGHT_PAREN); break;
+                case '{': addToken(TokenType::LEFT_BRACE); break;
+                case '}': addToken(TokenType::RIGHT_BRACE); break;
+                case '[': addToken(TokenType::CHOCHET_OUVRANT); break;
+                case ']': addToken(TokenType::CHOCHET_FERMANT); break;
+                case ',': addToken(TokenType::COMMA); break;
+                case '.': addToken(TokenType::DOT); break;
+                case ';': addToken(TokenType::SEMICOLON); break;
+                case ':': addToken(TokenType::COLON); break;
+                case '"': string(); break;
+
+                default:
+                    std::cerr << "Caractere inesperado na linha " << line_ << ": '" << c << "'\n";
+                    break;
+            }
+        }
+    }
+
+    tokens_.push_back({TokenType::FIN_FICHIER, "", static_cast<int>(line_)});
+    return tokens_;
+}
+
+bool Lexer::isAtEnd() const {
+    return current_ >= source_.size();
+}
+
+char Lexer::advance() {
+    return source_[current_++];
+}
+
+bool Lexer::match(char expected) {
+    if (isAtEnd() || source_[current_] != expected) return false;
+    current_++;
+    return true;
+}
+
+char Lexer::peek() const {
+    if (isAtEnd()) return '\0';
+    return source_[current_];
+}
+
+char Lexer::peekNext() const {
+    if (current_ + 1 >= source_.size()) return '\0';
+    return source_[current_ + 1];
+}
+
+void Lexer::addToken(TokenType type) {
+    std::string text = source_.substr(start_, current_ - start_);
+    tokens_.push_back({type, text, static_cast<int>(line_)});
+}
+
+void Lexer::string() {
+    while (!isAtEnd() && peek() != '"') {
+        if (peek() == '\n') line_++;
+        advance();
+    }
+
+    if (isAtEnd()) {
+        std::cerr << "Erro: string não terminada na linha " << line_ << "\n";
+        return;
+    }
+
+    advance(); // fecha "
+    std::string value = source_.substr(start_ + 1, current_ - start_ - 2);
+    tokens_.push_back({TokenType::CHAINE, value, static_cast<int>(line_)});
+}
+
+void Lexer::number() {
+    while (std::isdigit(peek())) advance();
+
+    if (peek() == '.' && std::isdigit(peekNext())) {
+        advance();
+        while (std::isdigit(peek())) advance();
+        addToken(TokenType::DECIMAL);
+    } else {
+        addToken(TokenType::NOMBRE);
+    }
+}
+
+void Lexer::identifier() {
+    while (std::isalnum(peek()) || peek() == '_') advance();
+    std::string text = source_.substr(start_, current_ - start_);
+
+    auto it = keywords.find(text);
+    TokenType type = (it != keywords.end()) ? it->second : TokenType::IDENTIFIANT;
+    tokens_.push_back({type, text, static_cast<int>(line_)});
+}
+
+
+
+
+//mapa de PALAVRAS-CHAVE
+const std::unordered_map<std::string, TokenType> Lexer::keywords ={
+
+      {"classe", TokenType::CLASSE},
+      {"fonction", TokenType::FONCTION},
+      {"laisser", TokenType::LAISSER},
+      {"constant", TokenType:: CONSTANTE},
+      {"si", TokenType::SI},
+      {"sinon", TokenType::SINON},
+      {"pour", TokenType::POUR},
+      {"tantque", TokenType::TANTQUE},
+      {"retourner", TokenType::RETOURNER},
+      {"nouveau", TokenType::NOUVEAU},
+      {"vrai", TokenType::VRAI},
+      {"faux", TokenType::FAUX},
+      {"nulle", TokenType::NULLE},
+      {"identifiant", TokenType::IDENTIFIANT},
+      {"nombre", TokenType::NOMBRE},
+      {"decimal", TokenType::DECIMAL},
+      {"chaine", TokenType::CHAINE},
+      {"plus", TokenType::PLUS},
+      {"moins", TokenType::MOINS},
+      {"fois", TokenType::FOIS},
+      {"divise", TokenType::DIVISE},
+      {"percent", TokenType::PERCENT},
+      {"egal", TokenType::EGAL},
+      {"egal_egal", TokenType::EGAL_EGAL},
+      {"different", TokenType::DIFFERENT},
+      {"inferieur", TokenType::INFERIEUR},
+      {"inf_egal", TokenType:: INF_EGAL},
+      {"superieur", TokenType::SUPERIEUR},
+      {"sup_egal", TokenType::SUP_EGAL},
+      {"et", TokenType::ET},
+      {"ou", TokenType::OU},
+      {"non", TokenType::NON},
+      {"left_paren", TokenType::LEFT_PAREN},
+      {"right_paren", TokenType::RIGHT_PAREN},
+      {"left_brace", TokenType::LEFT_BRACE},
+      {"right_brace", TokenType::RIGHT_BRACE},
+      {"chochet_ouvrant", TokenType::CHOCHET_OUVRANT},
+      {"chochet_fermant", TokenType::CHOCHET_FERMANT},
+      {"comma", TokenType::COMMA},
+      {"dot", TokenType::DOT},
+      {"semicolon", TokenType::SEMICOLON},
+      {"colon", TokenType::COLON},
+      {"fin_fichier", TokenType::FIN_FICHIER},
+      {"herite", TokenType::HERITE},
+      {"break", TokenType::BREAK},
+      {"continue", TokenType::CONTINUE}
+};
+
+    
+     
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+===== PurpleKai-0.1.0/src/parser.cpp =====
+#include "parser.h"
+#include "lexer.h"
+#include <cctype>
+#include <algorithm>
+#include <initializer_list>
+#include <iostream>
+
+//=================================================
+//IMPLEMENTAÇÃO DOS METODOS AUXILIARES
+//=================================================
+Parser::Parser(const std::vector<Token>& tokens)
+  : tokens_(tokens){}
+
+
+  /** Verifica se chegamos ao final da lista de tokens
+   * @return true se o token atual é END_OF_FILE
+   */
+  bool Parser::isAtEnd() const {
+    return peek().type == TokenType::FIN_FICHIER;
+  }
+
+/** Avança para o proximo token e retorna o token anterior
+ * @return Token consumido
+ */ 
+
+const Token& Parser::advance(){
+  if(!isAtEnd()) current_++;
+  return previous();
+}
+
+/** Obtém o token atual sem consumi-lo (loookhead)
+ * @return Token atual
+ */
+const Token& Parser::peek() const {
+  return tokens_[current_];
+}
+
+/** Verifica e consume o token se for do tipo especificado
+ * @param type Tipo de token esperado
+ * @return true se o token foi consumido
+ */
+
+bool Parser::match(TokenType type){
+  if (check(type)){
+    advance();
+    return true;
+  }
+  return false;
+}
+
+
+const Token& Parser::previous() const {
+    return tokens_[current_ - 1];
+}
+/** Verifivca e consome se qualquer um dos tipos corresponder
+ * @param types Lista de tipos possiveis
+ * @return true se algumn token foi consumido
+ */
+
+bool Parser::match(const std::initializer_list<TokenType>& types){
+  for (TokenType type : types){
+    if (check(type)){
+      advance();
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Consume obrigatoriamente um token do tipo especificado
+ * @param type Tipo esperado
+ * @param message Mensagem de erro se não corresponder
+ * @return Token consumido
+ * @throws ParseError se o tipo não corresponder
+ */
+const Token& Parser::consume(TokenType type, const std::string& message){
+  if (check(type)) return advance();
+  throw error(peek(), message);
+
+}
+
+/** Cria um objeto de erro de parsing
+ * @param token Token onde ocorreu o error
+ * @param message Descriçaõ do erro
+ * @return Objeto ParseError
+ */
+ParseError Parser::error(const Token& token, const std::string& message) const{
+  return ParseError(token, "[Linha"+ std::to_string(token.line)+ "]" + message);
+
+}
+
+/** Sincronoza após um erro - avança até encontrar um ponto de recuperação 
+ * Pontos de recuperação: inicios de declarações( class, func, var, etc.)
+ */
+void Parser::synchronize(){
+  advance();//Avança pelo token problematico
+
+  //Continua avançado até achar um ponto de Sincronozaçaõ 
+  while(!isAtEnd()){
+    if (previous().type == TokenType::SEMICOLON) return;
+
+    switch (peek().type){
+        case TokenType::CLASSE:
+        case TokenType::FONCTION:
+        case TokenType::LAISSER:
+        case TokenType::CONSTANTE:
+        case TokenType::SI:
+        case TokenType::POUR:
+        case TokenType::TANTQUE:
+        case TokenType::RETOURNER:
+             return;
+       default:
+             advance();
+
+    }
+  }
+
+}
+
+//=========================================================================
+//Métodos de parsing de declarações(top-level)
+//========================================================================
+//
+/** Método principal que inicia o parsing do programa
+ * @return AST do programa (nó raiz do Program)
+ */
+std::unique_ptr<Program> Parser::parse(){
+  auto program = std::make_unique<Program>();
+
+  //Processa todas as declarações até o final do arquivo]
+  while (!isAtEnd()){
+    try{
+      program->declarations.push_back(parseDeclaration());
+    }catch ( const ParseError& e){
+      //reporta o erro e Sincronoza para tentat Continuar
+      std::cerr << e.what() << std::endl;
+      synchronize();
+
+      //Em produção, coletaria todos os erros antes de abortar
+      throw;
+
+      }
+    }
+    return program;
+  
+}
+
+/** Parseia uma declaraçaõ de alto nivel
+ * @return Declaração (class, func, var ou statement)
+ */
+
+StmtPtr Parser::parseDeclaration(){
+  if (match(TokenType::CLASSE))   return parseClasseDeclaration();
+  if (match(TokenType::FONCTION)) return parseFunctionDeclaration();
+  if (match({TokenType::LAISSER, TokenType::CONSTANTE})){
+  //Retrocede pois o token já foi consumido pelo match 
+     current_--;
+     return parseVarDeclaration();
+  }
+  return parseStatement();
+}
+
+
+
+/** Parseia declaração de classe 
+ * Formato: "classe" ID [herite ID] "{" {método} "}"
+ */
+std::unique_ptr<ClassDec1> Parser::parseClasseDeclaration() {Token name = consume(TokenType::IDENTIFIANT, "Esperado nome da classe após 'classe'");
+    // Herança opcional
+    std::unique_ptr<VariableExpr> superclass = nullptr;
+    if (match(TokenType::HERITE)) {
+        Token superName = consume(TokenType::IDENTIFIANT, "Esperado nome da superclasse após 'herite'");
+        superclass = std::make_unique<VariableExpr>();
+        superclass->value = superName; 
+    }
+    
+    consume(TokenType::LEFT_BRACE, "Esperado '{' antes do corpo da classe");
+
+    // Parseia os métodos da classe
+    std::vector<std::unique_ptr<FunctionDec1>> methods;
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        methods.push_back(parseFunctionDeclaration());
+    }
+
+    consume(TokenType::RIGHT_BRACE, "Esperado '}' após o corpo da classe");
+
+    auto classDec = std::make_unique<ClassDec1>();
+    classDec->name = name;
+    classDec->superclass = std::move(superclass);
+    classDec->methods = std::move(methods);
+    
+    return classDec;
+}
+
+std::unique_ptr<FunctionDec1> Parser::parseFunctionDeclaration(){
+   Token name = consume(TokenType::IDENTIFIANT, "Expect function name after 'fonction',.");
+   consume(TokenType::LEFT_PAREN, "Expect '(' after fnuction name.");
+
+   std::vector<Token> params;
+   if (!check(TokenType::RIGHT_PAREN)){
+     do{
+       if (params.size() >= 255){
+         reportError(peek(), "Can't have more than 255 parameters.");
+       }
+       Token param = consume(TokenType::IDENTIFIANT, "Expect parameter name");
+       params.push_back(param);
+     }while (match(TokenType::COMMA));
+   }
+   consume(TokenType::RIGHT_PAREN, "Expect ')' after parameters");
+
+   //Optonal return type
+   std::unique_ptr<Type> returnType = nullptr;
+   if (match(TokenType::COLON)){
+     returnType = parseType();
+   }
+    
+   //Parse functional body
+   consume(TokenType::LEFT_BRACE, "Expect '{' before function body.");
+   auto body = parseBlock();
+
+   return std::make_unique<FunctionDec1>(name, std::move(params), std::move(returnType), std::move(body));
+}
+
+ std::unique_ptr<Type> Parser::parseType() {
+    if (match(TokenType::INT)) return std::make_unique<Type>(TypeKind::INT);
+    if (match(TokenType::FLOAT)) return std::make_unique<Type>(TypeKind::FLOAT);
+    if (match(TokenType::BOOL)) return std::make_unique<Type>(TypeKind::BOOL);
+    if (match(TokenType::STRING)) return std::make_unique<Type>(TypeKind::STRING);
+    if (match(TokenType::VOID)) return std::make_unique<Type>(TypeKind::VOID);
+    
+    if (match(TokenType::IDENTIFIANT)) {
+        return std::make_unique<Type>(TypeKind::CLASS, previous());
+    }
+    
+    if (match(TokenType::CHOCHET_OUVRANT)) {
+        auto elementType = parseType();
+        consume(TokenType:: CHOCHET_FERMANT, "Expect ']' after list type.");
+        return std::make_unique<Type>(TypeKind::LIST, std::move(elementType));
+    }
+    
+    throw error(peek(), "Invalid type specification");
+}
+
+StmtPtr Parser::parseWhileStatement() {
+    consume(TokenType::LEFT_PAREN, "Expect '(' after 'tantque'.");
+    auto condition = parseExpression();
+    consume(TokenType::RIGHT_PAREN, "Expect ')' after condition.");
+    
+    auto body = parseStatement();
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body));
+}
+
+StmtPtr Parser::parseReturnStatement() {
+    Token keyword = previous();
+    ExprPtr value = nullptr;
+    
+    if (!check(TokenType::SEMICOLON)) {
+        value = parseExpression();
+    }
+    
+    consume(TokenType::SEMICOLON, "Expect ';' after return value.");
+    return std::make_unique<ReturnStmt>(keyword, std::move(value));
+}
+
+void Parser::reportError(const Token& token, const std::string& message) {
+    std::cerr << "[Line " << token.line << "] Error: " << message << "\n";
+    hadError = true;
+} 
+
+//========================================================================
+// REGRAS DE EXPRESSÕES (COM PRECEDÊNCIA)
+//========================================================================
+
+ExprPtr Parser::parseExpression() {
+    return parseAssigment();
+}
+
+ExprPtr Parser::parseAssigment() {
+    ExprPtr expr = parseOr();
+
+    if (match(TokenType::EGAL)) {
+        Token equals = previous();
+        ExprPtr value = parseAssigment();
+
+        // Verifica se a expressão à esquerda é uma variável válida para receber atribuição
+        if (auto varExpr = dynamic_cast<VariableExpr*>(expr.get())) {
+            Token name = varExpr->value;
+            auto assignExpr = std::make_unique<AssignExpr>();
+            assignExpr->name = name;
+            assignExpr->valeu = std::move(value); 
+            return assignExpr;
+        }
+
+        error(equals, "Alvo de atribuição inválido.");
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseOr() {
+    ExprPtr expr = parseAnd();
+
+    while (match(TokenType::OU)) {
+        Token op = previous();
+        ExprPtr right = parseAnd();
+        auto logical = std::make_unique<LogicalExpr>();
+        logical->left = std::move(expr);
+        logical->op = op;
+        logical->right = std::move(right);
+        expr = std::move(logical);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseAnd() {
+    ExprPtr expr = parseEquality();
+
+    while (match(TokenType::ET)) {
+        Token op = previous();
+        ExprPtr right = parseEquality();
+        auto logical = std::make_unique<LogicalExpr>();
+        logical->left = std::move(expr);
+        logical->op = op;
+        logical->right = std::move(right);
+        expr = std::move(logical);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseEquality() {
+    ExprPtr expr = parseComparison();
+
+    while (match({TokenType::DIFFERENT, TokenType::EGAL_EGAL})) {
+        Token op = previous();
+        ExprPtr right = parseComparison();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseComparison() {
+    ExprPtr expr = parseTerm();
+
+    while (match({TokenType::SUPERIEUR, TokenType::SUP_EGAL, TokenType::INFERIEUR, TokenType::INF_EGAL})) {
+        Token op = previous();
+        ExprPtr right = parseTerm();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseTerm() {
+    ExprPtr expr = parseFactor();
+
+    while (match({TokenType::MOINS, TokenType::PLUS})) {
+        Token op = previous();
+        ExprPtr right = parseFactor();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parseFactor() {
+    ExprPtr expr = parseUnary();
+
+    while (match({TokenType::DIVISE, TokenType::FOIS, TokenType::PERCENT})) {
+        Token op = previous();
+        ExprPtr right = parseUnary();
+        auto binary = std::make_unique<BinaryExpr>();
+        binary->left = std::move(expr);
+        binary->op = op;
+        binary->right = std::move(right);
+        expr = std::move(binary);
+    }
+
+    return expr;
+}
+
+
+ExprPtr Parser::parseUnary() {
+    if (match({TokenType::NON, TokenType::MOINS})) {
+        Token op = previous();
+        ExprPtr right = parseUnary();
+        auto unary = std::make_unique<UnaryExpr>();
+        unary->op = op;
+        unary->right = std::move(right);
+        return unary;
+    }
+    return parseCall();
+}
+
+ExprPtr Parser::parseCall() {
+    ExprPtr expr = parsePrimary();
+
+    while (true) {
+        if (match(TokenType::LEFT_PAREN)) {
+            expr = finishCall(std::move(expr));
+        } else {
+            break;
+        }
+    }
+
+    return expr;
+}
+
+ExprPtr Parser::parsePrimary() {
+    if (match(TokenType::VRAI)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(true);
+        return expr;
+    }
+    if (match(TokenType::FAUX)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(false);
+        return expr;
+    }
+    if (match(TokenType::NULLE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value();  // nil
+        return expr;
+    }
+
+    if (match(TokenType::NOMBRE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        int intValue = std::stoi(previous().lexeme);
+        expr->value = Value(intValue);
+        return expr;
+    }
+    if (match(TokenType::DECIMAL)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        double doubleValue = std::stod(previous().lexeme);
+        expr->value = Value(doubleValue);
+        return expr;
+    }
+    if (match(TokenType::CHAINE)) {
+        auto expr = std::make_unique<LiteralExpr>();
+        expr->value = Value(previous().lexeme);
+        return expr;
+    }
+
+    if (match(TokenType::IDENTIFIANT)) {
+        auto expr = std::make_unique<VariableExpr>();
+        expr->value = previous();
+        return expr;
+    }
+
+    if (match(TokenType::LEFT_PAREN)) {
+        ExprPtr expr = parseExpression();
+        consume(TokenType::RIGHT_PAREN, "Esperado ')' após a expressão.");
+        auto group = std::make_unique<GroupingExpr>();
+        group->right = std::move(expr);
+        return group;
+    }
+
+    throw error(peek(), "Esperada uma expressão.");
+}
+
+
+// Método auxiliar para construir a chamada de função
+ExprPtr Parser::finishCall(ExprPtr callee) {
+    std::vector<ExprPtr> arguments;
+    if (!check(TokenType::RIGHT_PAREN)) {
+        do {
+            if (arguments.size() >= 255) {
+                error(peek(), "Não pode haver mais de 255 argumentos.");
+            }
+            arguments.push_back(parseExpression());
+        } while (match(TokenType::COMMA));
+    }
+
+    Token paren = consume(TokenType::RIGHT_PAREN, "Esperado ')' após argumentos.");
+    
+    auto callExpr = std::make_unique<CallExpr>();
+    callExpr->callee = std::move(callee);
+    callExpr->paren = paren;
+    callExpr->arguments = std::move(arguments);
+    
+    return callExpr;
+}
+
+// ==========================================
+// MÉTODOS FALTANTES NO PARSER
+// ==========================================
+
+bool Parser::check(TokenType type) const {
+    if (isAtEnd()) return false;
+    return peek().type == type;
+}
+
+std::unique_ptr<VarDec1> Parser::parseVarDeclaration() {
+    bool isConst = match(TokenType::CONSTANTE);
+    if (!isConst) consume(TokenType::LAISSER, "Esperado 'laisser' ou 'constant'");
+    
+    Token name = consume(TokenType::IDENTIFIANT, "Esperado nome da variável");
+    ExprPtr initializer = nullptr;
+    
+    if (match(TokenType::EGAL)) {
+        initializer = parseExpression();
+    }
+    
+    consume(TokenType::SEMICOLON, "Esperado ';' após declaração de variável");
+    auto varDec = std::make_unique<VarDec1>();
+    varDec->name = name;
+    varDec->initializer = std::move(initializer);
+    varDec->isConst = isConst;
+    return varDec;
+}
+
+StmtPtr Parser::parseStatement() {
+    if (match(TokenType::SI)) return parseIfStatement();
+    if (match(TokenType::POUR)) return parseForStatement();
+    if (match(TokenType::TANTQUE)) return parseWhileStatement();
+    if (match(TokenType::RETOURNER)) return parseReturnStatement();
+    if (match(TokenType::LEFT_BRACE)) return parseBlock();
+    if (match(TokenType::BREAK)) {
+        consume(TokenType::SEMICOLON, "Expected ';' after break");
+        return std::make_unique<BreakStmt>();
+    }
+    if (match(TokenType::CONTINUE)) {
+        consume(TokenType::SEMICOLON, "Expected ';' after continue");
+        return std::make_unique<ContinueStmt>();
+    }
+    return parseExprStmt();
+}
+
+StmtPtr Parser::parseExprStmt() {
+    ExprPtr expr = parseExpression();
+    consume(TokenType::SEMICOLON, "Esperado ';' após expressão.");
+    auto stmt = std::make_unique<ExprStmt>();
+    stmt->expression = std::move(expr);
+    return stmt;
+}
+
+std::unique_ptr<BlockStmt> Parser::parseBlock() {
+    auto block = std::make_unique<BlockStmt>();
+    while (!check(TokenType::RIGHT_BRACE) && !isAtEnd()) {
+        block->statements.push_back(parseDeclaration());
+    }
+    consume(TokenType::RIGHT_BRACE, "Esperado '}' após o bloco.");
+    return block;
+}
+
+StmtPtr Parser::parseIfStatement() {
+    consume(TokenType::LEFT_PAREN, "Esperado '(' após 'si'.");
+    ExprPtr condition = parseExpression();
+    consume(TokenType::RIGHT_PAREN, "Esperado ')' após condição do 'si'.");
+    
+    StmtPtr thenBranch = parseStatement();
+    StmtPtr elseBranch = nullptr;
+    if (match(TokenType::SINON)) {
+        elseBranch = parseStatement();
+    }
+    
+    auto ifStmt = std::make_unique<IfStmt>();
+    ifStmt->condition = std::move(condition);
+    ifStmt->thenBranch = std::move(thenBranch);
+    ifStmt->elseBranch = std::move(elseBranch);
+    return ifStmt;
+}
+
+StmtPtr Parser::parseForStatement() {
+    consume(TokenType::LEFT_PAREN, "Esperado '(' após 'pour'.");
+    
+    StmtPtr initializer;
+    if (match(TokenType::SEMICOLON)) {
+        initializer = nullptr;
+    } else if (match({TokenType::LAISSER, TokenType::CONSTANTE})) {
+        current_--; // Volta para o parseVarDeclaration consumir
+        initializer = parseVarDeclaration();
+    } else {
+        initializer = parseExprStmt();
+    }
+
+    ExprPtr condition = nullptr;
+    if (!check(TokenType::SEMICOLON)) {
+        condition = parseExpression();
+    }
+    consume(TokenType::SEMICOLON, "Esperado ';' após condição do loop.");
+
+    ExprPtr increment = nullptr;
+    if (!check(TokenType::RIGHT_PAREN)) {
+        increment = parseExpression();
+    }
+    consume(TokenType::RIGHT_PAREN, "Esperado ')' após cláusulas do 'pour'.");
+
+    StmtPtr body = parseStatement();
+
+    auto forStmt = std::make_unique<ForStmt>();
+    forStmt->initializer = std::move(initializer);
+    forStmt->condition = std::move(condition);
+    forStmt->increment = std::move(increment);
+    forStmt->body = std::move(body);
+    return forStmt;
+}
+
+===== PurpleKai-0.1.0/src/interpreter.cpp =====
+#include "../include/interpreter.h"
+#include "../include/parser.h" 
+#include <iostream>
+#include <stdexcept>
+
+// =====================================================================
+// 1. PONTO DE ENTRADA E CONTROLE DE BLOCOS
+// =====================================================================
+Interpreter::Interpreter() {
+    // Inicialização da classe (pode ficar vazio por enquanto)
+}
+
+class BreakException {};
+class ContinueException {};
+
+void Interpreter::interpret(const std::vector<Stmt*>& statements) {
+    try {
+        for (Stmt* statement : statements) {
+            execute(statement);
+        }
+    } catch (const std::runtime_error& error) {
+        std::cerr << error.what() << std::endl; 
+    }
+}
+
+Value Interpreter::evaluate(Expr* expr) {
+    if (expr == nullptr) return Value();
+    return expr->accept(this);
+}
+
+void Interpreter::execute(Stmt* stmt) {
+    if (stmt != nullptr) stmt->accept(this);
+}
+
+void Interpreter::executeBlock(const std::vector<Stmt*>& statements, Environment* env) {
+    Environment* previous = environment;
+    environment = env;
+
+    try {
+        for (Stmt* statement : statements) {
+            execute(statement);
+        }
+    } catch (...) {
+        environment = previous;
+        throw;
+    }
+
+    environment = previous; 
+}
+
+// =====================================================================
+// 2. VISITANTES DE EXPRESSÕES (MATEMÁTICA E LÓGICA)
+// =====================================================================
+
+Value Interpreter::visitBinaryExpr(BinaryExpr* expr) {
+    Value left = evaluate(expr->left.get());
+    Value right = evaluate(expr->right.get());
+
+    switch (expr->op.type) {
+        // --- ARITMÉTICA ---
+        case TokenType::PLUS:
+    // Concatenação mista: se um dos operandos for string, converte o outro
+            if (left.type == ValueType::STRING || right.type == ValueType::STRING) {
+                std::string leftStr = (left.type == ValueType::STRING) ? std::get<std::string>(left.data) : stringify(left);
+                std::string rightStr = (right.type == ValueType::STRING) ? std::get<std::string>(right.data) : stringify(right);
+            return Value(leftStr + rightStr);
+    }
+    // Soma numérica
+            if (left.type == ValueType::NUMBER && right.type == ValueType::NUMBER)
+                return Value(std::get<int>(left.data) + std::get<int>(right.data));
+            if (left.type == ValueType::FLOAT && right.type == ValueType::FLOAT)
+                return Value(std::get<double>(left.data) + std::get<double>(right.data));
+            throw std::runtime_error("Operandos devem ser dois números, dois floats ou pelo menos uma string.");
+        
+        case TokenType::MOINS:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) - std::get<int>(right.data));
+
+        case TokenType::FOIS:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) * std::get<int>(right.data));
+
+        case TokenType::DIVISE:
+            checkNumberOperands(expr->op, left, right);
+            if (std::get<int>(right.data) == 0) throw std::runtime_error("Divisão por zero não permitida.");
+            return Value(std::get<int>(left.data) / std::get<int>(right.data));
+
+        // --- COMPARAÇÃO ---
+        case TokenType::EGAL_EGAL:
+            return Value(isEqual(left, right));
+
+        case TokenType::DIFFERENT:
+            return Value(!isEqual(left, right));
+
+        case TokenType::INFERIEUR:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) < std::get<int>(right.data));
+
+        case TokenType::INF_EGAL:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) <= std::get<int>(right.data));
+
+        case TokenType::SUPERIEUR:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) > std::get<int>(right.data));
+
+        case TokenType::SUP_EGAL:
+            checkNumberOperands(expr->op, left, right);
+            return Value(std::get<int>(left.data) >= std::get<int>(right.data));
+
+        default:
+            throw std::runtime_error("Operador binário não suportado.");
+    }
+}
+
+Value Interpreter::visitUnaryExpr(UnaryExpr* expr) {
+    Value right = evaluate(expr->right.get());
+
+    switch (expr->op.type) {
+        case TokenType::MOINS:
+            checkNumberOperand(expr->op, right);
+            return Value(-std::get<int>(right.data));
+        case TokenType::NON:
+            return Value(!isTruthy(right));
+        default:
+            throw std::runtime_error("Operador unário não implementado");
+    }
+}
+
+Value Interpreter::visitLiteralExpr(LiteralExpr* expr) {
+    return expr->value; 
+}
+
+Value Interpreter::visitGroupingExpr(GroupingExpr* expr) {
+    return evaluate(expr->right.get());
+}
+
+Value Interpreter::visitAssignExpr(AssignExpr* expr) {
+    Value value = evaluate(expr->valeu.get()); // Mantido 'valeu' conforme sua AST
+    environment->assign(expr->name, value); 
+    return value;
+}
+
+Value Interpreter::visitLogicalExpr(LogicalExpr* expr) {
+    Value left = evaluate(expr->left.get());
+    
+    if (expr->op.type == TokenType::OU) {
+        if (isTruthy(left)) return left;
+    } else { // TokenType::ET
+        if (!isTruthy(left)) return left;
+    }
+    
+    return evaluate(expr->right.get());
+}
+
+Value Interpreter::visitVariableExpr(VariableExpr* expr) { 
+    return environment->get(expr->value); // Corrigido de 'name' para 'identifier'
+}
+
+// Mocks temporários para features avançadas
+Value Interpreter::visitCallExpr(CallExpr* expr) { return Value(); } 
+Value Interpreter::visitGetExpr(GetExpr* expr) { return Value(); }
+Value Interpreter::visitSetExpr(SetExpr* expr) { return Value(); }
+Value Interpreter::visitThisExpr(ThisExpr* expr) { return Value(); }
+Value Interpreter::visitSuperExpr(SuperExpr* expr) { return Value(); }
+
+
+// =====================================================================
+// 3. VISITANTES DE COMANDOS (STATEMENTS)
+// =====================================================================
+
+void Interpreter::visitExprStmt(ExprStmt* stmt) {
+    Value value = evaluate(stmt->expression.get());
+    
+    // Comportamento do REPL: Se estivermos avaliando uma expressão solta no terminal,
+    // queremos ver o resultado impresso diretamente!
+    if (environment != nullptr) { 
+        std::cout << stringify(value) << std::endl;
+    }
+}
+
+void Interpreter::visitBreakStmt(BreakStmt* stmt) {
+    if (!inLoop) throw std::runtime_error("Break outside loop");
+    throw BreakException();   // precisamos de uma exceção especial
+}
+
+void Interpreter::visitContinueStmt(ContinueStmt* stmt) {
+    if (!inLoop) throw std::runtime_error("Continue outside loop");
+    throw ContinueException();
+}
+
+void Interpreter::visitVarDec1(VarDec1* stmt) {
+    Value value;
+    if (stmt->initializer != nullptr) {
+        value = evaluate(stmt->initializer.get());
+    }
+    environment->define(stmt->name.lexeme, value);
+}
+
+void Interpreter::visitBlockStmt(BlockStmt* stmt) {
+    Environment blockEnv(environment);
+    
+    // Extrai ponteiros brutos dos unique_ptrs para compatibilidade com executeBlock
+    std::vector<Stmt*> rawStatements;
+    rawStatements.reserve(stmt->statements.size());
+    for (const auto& statement : stmt->statements) {
+        rawStatements.push_back(statement.get());
+    }
+
+    executeBlock(rawStatements, &blockEnv);
+}
+
+void Interpreter::visitIfStmt(IfStmt* stmt) {
+    if (isTruthy(evaluate(stmt->condition.get()))) {
+        execute(stmt->thenBranch.get());
+    } else if (stmt->elseBranch != nullptr) {
+        execute(stmt->elseBranch.get());
+    }
+}
+
+void Interpreter::visitWhileStmt(WhileStmt* stmt) {
+    bool wasInLoop = inLoop;
+    inLoop = true;
+
+    try {
+        while (isTruthy(evaluate(stmt->condition.get()))) {
+            try {
+                execute(stmt->body.get());
+            } catch (BreakException&) {
+                break;
+            } catch (ContinueException&) {
+                continue;
+            }
+        }
+    } catch (...) {
+        inLoop = wasInLoop;
+        throw;
+    }
+
+    inLoop = wasInLoop;
+}
+
+
+void Interpreter::visitForStmt(ForStmt* stmt) {
+    Environment* previous = environment;
+    Environment forEnv(environment);
+    environment = &forEnv;
+
+    try {
+        if (stmt->initializer != nullptr) {
+            execute(stmt->initializer.get());
+        }
+
+        bool wasInLoop = inLoop;
+        inLoop = true;
+
+        while (stmt->condition == nullptr || isTruthy(evaluate(stmt->condition.get()))) {
+            try {
+                execute(stmt->body.get());
+            } catch (BreakException&) {
+                break;
+            } catch (ContinueException&) {
+                // Continue: apenas interrompe o corpo, o incremento será executado normalmente
+                // (não precisa fazer nada aqui, apenas sair do catch)
+            }
+            // Executa o incremento após o corpo (tanto se for normal quanto se for continue)
+            if (stmt->increment != nullptr) {
+                evaluate(stmt->increment.get());
+            }
+        }
+
+        inLoop = wasInLoop;
+    } catch (...) {
+        environment = previous;
+        throw;
+    }
+    environment = previous;
+}
+
+// Mocks obrigatórios para compilar
+void Interpreter::visitReturnStmt(ReturnStmt* stmt) {}
+void Interpreter::visitFunctionDec1(FunctionDec1* stmt) {}
+void Interpreter::visitClassDec1(ClassDec1* stmt) {}
+
+
+// =====================================================================
+// 4. FUNÇÕES UTILITÁRIAS
+// =====================================================================
+
+bool Interpreter::isTruthy(const Value& value) {
+    if (value.type == ValueType::NIL) return false;
+    if (value.type == ValueType::BOOL) return std::get<bool>(value.data);
+    return true;
+}
+
+bool Interpreter::isEqual(const Value& a, const Value& b) {
+    if (a.type != b.type) return false;
+    
+    switch (a.type) {
+        case ValueType::NIL: return true;
+        case ValueType::BOOL: return std::get<bool>(a.data) == std::get<bool>(b.data);
+        case ValueType::NUMBER: return std::get<int>(a.data) == std::get<int>(b.data);
+        case ValueType::STRING: return std::get<std::string>(a.data) == std::get<std::string>(b.data);
+        default: return false; 
+    }
+}
+
+void Interpreter::checkNumberOperand(const Token& op, const Value& operand) {
+    if (operand.type == ValueType::NUMBER) return;
+    throw std::runtime_error("Operando deve ser um número");
+}
+
+void Interpreter::checkNumberOperands(const Token& op, const Value& left, const Value& right) {
+    if (left.type == ValueType::NUMBER && right.type == ValueType::NUMBER) return;
+    throw std::runtime_error("Operandos devem ser números");
+}
+
+std::string Interpreter::stringify(const Value& value) {
+    switch (value.type) {
+        case ValueType::NIL: return "nul";
+        case ValueType::BOOL: return std::get<bool>(value.data) ? "vrai" : "faux";
+        case ValueType::NUMBER: return std::to_string(std::get<int>(value.data));
+        case ValueType::STRING: return std::get<std::string>(value.data);
+        default: return "[object]";
+    }
+}
+
+===== PurpleKai-0.1.0/teste_break.pk =====
+pour (laisser i = 0; i < 5; i = i + 1) {
+    si (i == 3) { break; }
+    i;
+}
+
+===== PurpleKai-0.1.0/teste_completo.pk =====
+laisser a = 10;
+laisser b = 20;
+laisser soma = a + b;
+"Resultado: " + soma;
+
+si (soma > 25) {
+    "Maior que 25";
+} sinon {
+    "Menor ou igual a 25";
+}
+
+pour (laisser i = 0; i < 3; i = i + 1) {
+    "Valor de i: " + i;
+}
+
+===== PurpleKai-0.1.0/teste_continue.pk =====
+pour (laisser i = 0; i < 5; i = i + 1) {
+    si (i == 2) { continue; }
+    i;
+}
+
+===== PurpleKai-0.1.0/teste_minimo.pk =====
+laisser a = 10; a;
+
+===== gera_teste.py =====
+#!/usr/bin/env python3
+conteudo = """laisser a = 10;
+laisser b = 20;
+laisser soma = a + b;
+"Resultado: " + soma;
+
+si (soma > 25) {
+    "Maior que 25";
+} sinon {
+    "Menor ou igual a 25";
+}
+
+"--- Loop pour ---";
+pour (laisser i = 0; i < 3; i = i + 1) {
+    "Valor de i: " + i;
+}
+
+"--- Loop tantque ---";
+laisser x = 3;
+tantque (x > 0) {
+    "x = " + x;
+    x = x - 1;
+}
+
+"--- Break ---";
+pour (laisser i = 0; i < 5; i = i + 1) {
+    si (i == 3) { break; }
+    i;
+}
+
+"--- Continue ---";
+pour (laisser i = 0; i < 5; i = i + 1) {
+    si (i == 2) { continue; }
+    i;
+}
+
+"--- Concatenação mista ---";
+laisser prefixo = "Número: ";
+prefixo + 42;
+
+"--- Escopo ---";
+laisser global = 10;
+{
+    laisser local = 20;
+    "dentro: " + local;
+}
+"fora: " + global;
+
+constant PI = 3.14;
+PI;
+
+"--- Expressões ---";
+(10 + 5) * 2 - 8 / 4;
+(5 > 3) et (10 < 20) ou non faux;
+
+"--- Fatorial de 5 ---";
+laisser n = 5;
+laisser fat = 1;
+tantque (n > 0) {
+    fat = fat * n;
+    n = n - 1;
+}
+"Fatorial: " + fat;
+
+"--- Todos os testes concluídos com sucesso! ---"
+"""
+
+with open("teste_completo.pk", "w") as f:
+    f.write(conteudo)
+print("Arquivo 'teste_completo.pk' recriado (sem comentários e com ; garantidos).")
+
+===== demo_purplekai.py =====
+#!/usr/bin/env python3
+"""
+Script de demonstração profissional do PurpleKai
+Autor: Miguel Santana
+Descrição: Cria um arquivo de teste completo e executa em diversos terminais,
+           com opções de log, modo REPL e personalização.
+"""
+
+import subprocess
+import os
+import sys
+import time
+import argparse
+import tempfile
+from pathlib import Path
+from datetime import datetime
+
+# Cores para output
+GREEN = "\033[92m"
+BLUE = "\033[94m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+RESET = "\033[0m"
+
+# Banner
+BANNER = f"""
+{BLUE}╔══════════════════════════════════════════════════════════╗
+║                                                              ║
+║   ██╗   ██╗██████╗ ██╗   ██╗██████╗ ██╗     ███████╗       ║
+║   ██║   ██║██╔══██╗██║   ██║██╔══██╗██║     ██╔════╝       ║
+║   ██║   ██║██████╔╝██║   ██║██████╔╝██║     █████╗         ║
+║   ██║   ██║██╔══██╗██║   ██║██╔═══╝ ██║     ██╔══╝         ║
+║   ╚██████╔╝██║  ██║╚██████╔╝██║     ███████╗███████╗       ║
+║    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝       ║
+║                                                              ║
+║           PurpleKai - Demonstração Automática               ║
+║                     v0.1.0 - Turing Complete                ║
+╚══════════════════════════════════════════════════════════════╝{RESET}
+"""
+
+def print_step(msg, status="info"):
+    """Imprime mensagem formatada."""
+    symbols = {"info": "ℹ️", "ok": "✅", "error": "❌", "warning": "⚠️"}
+    color = {"info": BLUE, "ok": GREEN, "error": RED, "warning": YELLOW}
+    print(f"{color.get(status, RESET)}{symbols.get(status, '•')} {msg}{RESET}")
+
+
+def criar_arquivo_teste(caminho, incluir_benchmark=False):
+    """Cria o arquivo .pk com todos os testes (versão linha a linha)."""
+    linhas = [
+        'laisser a = 10;',
+        'laisser b = 20;',
+        'laisser soma = a + b;',
+        '"Resultado: " + soma;',
+        '',
+        'si (soma > 25) {',
+        '    "Maior que 25";',
+        '} sinon {',
+        '    "Menor ou igual a 25";',
+        '}',
+        '',
+        '"--- Loop pour ---";',
+        'pour (laisser i = 0; i < 3; i = i + 1) {',
+        '    "Valor de i: " + i;',
+        '}',
+        '',
+        '"--- Loop tantque ---";',
+        'laisser x = 3;',
+        'tantque (x > 0) {',
+        '    "x = " + x;',
+        '    x = x - 1;',
+        '}',
+        '',
+        '"--- Break ---";',
+        'pour (laisser i = 0; i < 5; i = i + 1) {',
+        '    si (i == 3) { break; }',
+        '    i;',
+        '}',
+        '',
+        '"--- Continue ---";',
+        'pour (laisser i = 0; i < 5; i = i + 1) {',
+        '    si (i == 2) { continue; }',
+        '    i;',
+        '}',
+        '',
+        '"--- Concatenação mista ---";',
+        'laisser prefixo = "Número: ";',
+        'prefixo + 42;',
+        '',
+        '"--- Escopo ---";',
+        'laisser global = 10;',
+        '{',
+        '    laisser local = 20;',
+        '    "dentro: " + local;',
+        '}',
+        '"fora: " + global;',
+        '',
+        'constant PI = 3.14;',
+        'PI;',
+        '',
+        '"--- Expressões ---";',
+        '(10 + 5) * 2 - 8 / 4;',
+        '(5 > 3) et (10 < 20) ou non faux;',
+        '',
+        '"--- Fatorial de 5 ---";',
+        'laisser n = 5;',
+        'laisser fat = 1;',
+        'tantque (n > 0) {',
+        '    fat = fat * n;',
+        '    n = n - 1;',
+        '}',
+        '"Fatorial: " + fat;',
+        '',
+        '"--- Todos os testes concluídos com sucesso! ---";'
+    ]
+    
+    # Se benchmark for solicitado, adiciona no final (opcional)
+    if incluir_benchmark:
+        linhas.extend([
+            '',
+            '"--- Benchmark (1000 iterações) ---";',
+            'laisser count = 0;',
+            'pour (laisser i = 0; i < 1000; i = i + 1) {',
+            '    count = count + 1;',
+            '}',
+            '"Contador: " + count;',
+        ])
+    
+    with open(caminho, "w", encoding="utf-8") as f:
+        for linha in linhas:
+            f.write(linha + '\n')
+    return True
+
+def encontrar_terminal(preferido=None):
+    """Detecta terminais disponíveis. Se preferido for fornecido, tenta usá-lo primeiro."""
+    terminais_map = {
+        "kitty":   ["kitty", "--working-directory"],
+        "alacritty": ["alacritty", "--working-directory"],
+        "gnome-terminal": ["gnome-terminal", "--working-directory"],
+        "ghostty": ["ghostty", "--working-directory"],
+        "wezterm": ["wezterm", "start", "--cwd"],
+        "xterm":   ["xterm", "-e"],
+        "foot":    ["foot", "--working-directory"],
+        "terminator": ["terminator", "--working-directory"],
+    }
+    if preferido and preferido in terminais_map:
+        cmd_base = terminais_map[preferido]
+        if subprocess.run(["which", cmd_base[0]], capture_output=True).returncode == 0:
+            return preferido, cmd_base
+        print_step(f"Terminal preferido '{preferido}' não encontrado. Buscando alternativas...", "warning")
+    
+    for nome, cmd in terminais_map.items():
+        if subprocess.run(["which", cmd[0]], capture_output=True).returncode == 0:
+            return nome, cmd
+    return None, None
+
+def executar_no_terminal(terminal_cmd, workdir, purplekai_path, script_path, keep_open=True, log_file=None):
+    """Executa o purplekai dentro de um terminal."""
+    if keep_open:
+        comando_interno = f'cd "{workdir}" && "./{purplekai_path}" "{script_path}"; echo; echo "[Pressione Enter para fechar...]"; read'
+    else:
+        comando_interno = f'cd "{workdir}" && "./{purplekai_path}" "{script_path}"'
+    
+    terminal_nome, cmd_base = terminal_cmd
+    print_step(f"Usando terminal: {terminal_nome}", "info")
+    
+    # Constroi comando específico para cada terminal
+    if terminal_nome == "kitty":
+        proc = subprocess.Popen(cmd_base + [workdir, "-e", "bash", "-c", comando_interno])
+    elif terminal_nome == "alacritty":
+        proc = subprocess.Popen(cmd_base + [workdir, "-e", "bash", "-c", comando_interno])
+    elif terminal_nome == "gnome-terminal":
+        proc = subprocess.Popen(cmd_base + [workdir, "--", "bash", "-c", comando_interno])
+    elif terminal_nome == "ghostty":
+        # Ghostty suporta --working-directory mas não -e; usamos --exec
+        proc = subprocess.Popen([cmd_base[0], "--working-directory", workdir, "--exec", "bash", "-c", comando_interno])
+    elif terminal_nome == "wezterm":
+        # wezterm usa --cwd e depois o comando
+        proc = subprocess.Popen([cmd_base[0], "start", "--cwd", workdir, "--", "bash", "-c", comando_interno])
+    elif terminal_nome == "foot":
+        proc = subprocess.Popen([cmd_base[0], "--working-directory", workdir, "bash", "-c", comando_interno])
+    elif terminal_nome == "terminator":
+        proc = subprocess.Popen([cmd_base[0], "--working-directory", workdir, "-e", "bash", "-c", comando_interno])
+    else:  # fallback xterm etc.
+        proc = subprocess.Popen([cmd_base[0], "-e", "bash", "-c", comando_interno])
+    
+    # Se solicitado, aguarda um pouco e opcionalmente grava log (não trivial com processos filhos)
+    return proc
+
+def executar_no_console(workdir, purplekai_path, script_path, log_file=None):
+    """Executa diretamente no console atual (não abre nova janela). Útil para CI."""
+    comando = f'cd "{workdir}" && "./{purplekai_path}" "{script_path}"'
+    print_step("Executando no console atual...", "info")
+    result = subprocess.run(comando, shell=True, capture_output=True, text=True)
+    if log_file:
+        with open(log_file, "w") as f:
+            f.write(result.stdout)
+            if result.stderr:
+                f.write("\n--- STDERR ---\n")
+                f.write(result.stderr)
+    print(result.stdout)
+    if result.stderr:
+        print_step("Erros durante execução:", "warning")
+        print(result.stderr)
+    return result.returncode
+
+def modo_repl(workdir, purplekai_path, comandos=None):
+    """Abre o REPL e envia comandos (experimental). Usa wtype ou ydotool se disponível."""
+    if not comandos:
+        comandos = [
+            'laisser nome = "PurpleKai";',
+            '"Olá, " + nome;',
+            'laisser a = 10; laisser b = 20; a + b;',
+            'si (10 > 5) { "Verdadeiro" } sinon { "Falso" };',
+            'pour (laisser i = 0; i < 3; i = i + 1) { "i=" + i; }',
+            'sair',
+        ]
+    # Verifica se temos wtype
+    has_wtype = subprocess.run(["which", "wtype"], capture_output=True).returncode == 0
+    if not has_wtype:
+        print_step("wtype não encontrado. Modo REPL automatizado requer wtype. Instale com: sudo pacman -S wtype", "error")
+        return False
+    # Abre terminal com purplekai (sem script)
+    terminal_info = encontrar_terminal()
+    if not terminal_info[0]:
+        print_step("Nenhum terminal encontrado para REPL.", "error")
+        return False
+    # Abre o REPL no terminal
+    comando_interno = f'cd "{workdir}" && "./{purplekai_path}"'
+    terminal_nome, cmd_base = terminal_info
+    if terminal_nome == "kitty":
+        proc = subprocess.Popen(cmd_base + [workdir, "-e", "bash", "-c", comando_interno])
+    elif terminal_nome == "alacritty":
+        proc = subprocess.Popen(cmd_base + [workdir, "-e", "bash", "-c", comando_interno])
+    elif terminal_nome == "ghostty":
+        proc = subprocess.Popen([cmd_base[0], "--working-directory", workdir, "--exec", "bash", "-c", comando_interno])
+    else:
+        proc = subprocess.Popen([cmd_base[0], "-e", "bash", "-c", comando_interno])
+    time.sleep(1.5)  # Aguarda o REPL iniciar
+    # Envia comandos
+    for cmd in comandos:
+        subprocess.run(["wtype", cmd])
+        time.sleep(0.5)
+        subprocess.run(["wtype", "-kp", "enter"])
+        time.sleep(1)
+    return True
+
+def gerar_relatorio(log_path):
+    """Gera um relatório simples a partir do log."""
+    if not os.path.exists(log_path):
+        return
+    print_step(f"Relatório gerado: {log_path}", "info")
+    with open(log_path, "r") as f:
+        lines = f.readlines()
+    # Conta testes baseado em palavras-chave
+    testes = sum(1 for line in lines if "---" in line and not line.strip().startswith("--"))
+    erros = sum(1 for line in lines if "Erro" in line or "error" in line.lower())
+    print(f"    Testes executados: {testes}")
+    print(f"    Erros detectados: {erros}")
+
+def main():
+    parser = argparse.ArgumentParser(description="PurpleKai Demonstração Automática")
+    parser.add_argument("--terminal", type=str, default=None, help="Terminal preferido (kitty, alacritty, ghostty, etc.)")
+    parser.add_argument("--keep-open", action="store_true", default=True, help="Manter terminal aberto após execução (padrão)")
+    parser.add_argument("--no-keep", dest="keep_open", action="store_false", help="Fechar terminal automaticamente")
+    parser.add_argument("--console", action="store_true", help="Executar no console atual (sem abrir nova janela)")
+    parser.add_argument("--repl", action="store_true", help="Modo REPL (digitação automática)")
+    parser.add_argument("--log", type=str, default=None, help="Salvar saída em arquivo de log")
+    parser.add_argument("--benchmark", action="store_true", help="Incluir benchmark no script")
+    parser.add_argument("--output-script", type=str, default="teste_completo.pk", help="Nome do arquivo de script gerado")
+    args = parser.parse_args()
+
+    print(BANNER)
+    print_step("Iniciando demonstração do PurpleKai", "info")
+
+    workdir = os.getcwd()
+    purplekai_exec = "./purplekai"
+    script_path = os.path.join(workdir, args.output_script)
+
+    # Verifica executável
+    if not os.path.isfile(os.path.join(workdir, "purplekai")):
+        print_step("Executável 'purplekai' não encontrado. Compile com 'make'.", "error")
+        sys.exit(1)
+
+    # Cria script de teste
+    criar_arquivo_teste(script_path, incluir_benchmark=args.benchmark)
+    print_step(f"Script criado: {script_path}", "ok")
+
+    # Modo REPL
+    if args.repl:
+        print_step("Iniciando modo REPL interativo...", "info")
+        modo_repl(workdir, purplekai_exec)
+        print_step("REPL finalizado.", "ok")
+        return
+
+    # Modo console
+    if args.console:
+        ret = executar_no_console(workdir, purplekai_exec, script_path, log_file=args.log)
+        if ret == 0:
+            print_step("Execução concluída com sucesso!", "ok")
+        else:
+            print_step(f"Execução finalizada com código de erro {ret}.", "error")
+        if args.log:
+            gerar_relatorio(args.log)
+        return
+
+    # Modo gráfico com terminal
+    terminal_info = encontrar_terminal(preferido=args.terminal)
+    if not terminal_info[0]:
+        print_step("Nenhum terminal gráfico encontrado. Use --console ou instale um terminal.", "error")
+        sys.exit(1)
+    
+    proc = executar_no_terminal(terminal_info, workdir, purplekai_exec, script_path, keep_open=args.keep_open, log_file=args.log)
+    print_step(f"Demonstração iniciada no terminal {terminal_info[0]}.", "ok")
+    print_step("Aguardando a janela... Feche-a quando terminar ou pressione Enter para continuar.", "info")
+    try:
+        proc.wait()
+    except KeyboardInterrupt:
+        print_step("Interrompido pelo usuário.", "warning")
+    if args.log:
+        # Tentamos capturar log após execução (não trivial, pois o terminal pode ter fechado)
+        print_step("Log salvo em: " + args.log, "info")
+
+if __name__ == "__main__":
+    main()
+
+===== demo_live.py =====
+#!/usr/bin/env python3
+"""
+Script de demonstração profissional do PurpleKai - Modo Ao Vivo
+Autor: Miguel Santana
+Descrição: Abre o nano, digita o código linha por linha (simula codificação ao vivo)
+           com indentação adequada e executa o PurpleKai.
+"""
+
+import subprocess
+import os
+import sys
+import time
+import random
+import argparse
+
+# Cores para output
+GREEN = "\033[92m"
+BLUE = "\033[94m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+RESET = "\033[0m"
+
+BANNER = f"""
+{BLUE}╔══════════════════════════════════════════════════════════╗
+║                                                              ║
+║   ██╗   ██╗██████╗ ██╗   ██╗██████╗ ██╗     ███████╗       ║
+║   ██║   ██║██╔══██╗██║   ██║██╔══██╗██║     ██╔════╝       ║
+║   ██║   ██║██████╔╝██║   ██║██████╔╝██║     █████╗         ║
+║   ██║   ██║██╔══██╗██║   ██║██╔═══╝ ██║     ██╔══╝         ║
+║   ╚██████╔╝██║  ██║╚██████╔╝██║     ███████╗███████╗       ║
+║    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝       ║
+║                                                              ║
+║           PurpleKai - Demonstração Ao Vivo                  ║
+║                     v0.1.0 - Turing Complete                ║
+╚══════════════════════════════════════════════════════════════╝{RESET}
+"""
+
+def print_step(msg, status="info"):
+    symbols = {"info": "ℹ️", "ok": "✅", "error": "❌", "warning": "⚠️"}
+    color = {"info": BLUE, "ok": GREEN, "error": RED, "warning": YELLOW}
+    print(f"{color.get(status, RESET)}{symbols.get(status, '•')} {msg}{RESET}")
+
+def encontrar_terminal():
+    """Detecta um terminal gráfico (kitty, alacritty, ghostty, etc.)"""
+    terminais = ["kitty", "alacritty", "ghostty", "gnome-terminal", "xterm"]
+    for term in terminais:
+        if subprocess.run(["which", term], capture_output=True).returncode == 0:
+            return term
+    return None
+
+def digitar_no_nano(conteudo_linhas, intervalo_base=0.2, variacao=0.1):
+    """
+    Envia texto linha por linha para o nano.
+    - intervalo_base: pausa média entre linhas (segundos)
+    - variacao: variação aleatória para simular hesitação humana
+    As linhas são enviadas exatamente como estão (com espaços de indentação).
+    """
+    time.sleep(1.5)  # Aguarda o nano abrir
+    for idx, linha in enumerate(conteudo_linhas):
+        # Pequena pausa variável antes de cada linha (exceto a primeira)
+        if idx > 0:
+            pausa = intervalo_base + random.uniform(-variacao, variacao)
+            time.sleep(max(0.1, pausa))
+        
+        if linha.strip() == "":
+            # Linha vazia: apenas Enter
+            subprocess.run(["wtype", "-kp", "enter"])
+        else:
+            # Envia a linha com indentação (espaços já estão na string)
+            subprocess.run(["wtype", linha])
+            time.sleep(0.05)  # pequena pausa entre o texto e o Enter
+            subprocess.run(["wtype", "-kp", "enter"])
+    
+    # Salvar (Ctrl+O), confirmar, sair (Ctrl+X)
+    time.sleep(0.5)
+    subprocess.run(["wtype", "-k", "ctrl+o"])
+    time.sleep(0.3)
+    subprocess.run(["wtype", "-kp", "enter"])   # confirma nome do arquivo
+    time.sleep(0.3)
+    subprocess.run(["wtype", "-k", "ctrl+x"])
+    time.sleep(0.5)
+
+def executar_ao_vivo(velocidade="normal"):
+    """Configura a velocidade de digitação"""
+    velocidades = {
+        "lento": (0.4, 0.15),
+        "normal": (0.2, 0.1),
+        "rapido": (0.1, 0.05)
+    }
+    intervalo_base, variacao = velocidades.get(velocidade, (0.2, 0.1))
+
+    term = encontrar_terminal()
+    if not term:
+        print_step("Nenhum terminal gráfico encontrado.", "error")
+        sys.exit(1)
+    print_step(f"Usando terminal: {term} (velocidade: {velocidade})", "info")
+
+    script_path = os.path.join(os.getcwd(), "teste_completo.pk")
+
+    # Conteúdo linha a linha com indentação adequada
+    linhas = [
+        'laisser a = 10;',
+        'laisser b = 20;',
+        'laisser soma = a + b;',
+        '"Resultado: " + soma;',
+        '',
+        'si (soma > 25) {',
+        '    "Maior que 25";',
+        '} sinon {',
+        '    "Menor ou igual a 25";',
+        '}',
+        '',
+        '"--- Loop pour ---";',
+        'pour (laisser i = 0; i < 3; i = i + 1) {',
+        '    "Valor de i: " + i;',
+        '}',
+        '',
+        '"--- Loop tantque ---";',
+        'laisser x = 3;',
+        'tantque (x > 0) {',
+        '    "x = " + x;',
+        '    x = x - 1;',
+        '}',
+        '',
+        '"--- Break ---";',
+        'pour (laisser i = 0; i < 5; i = i + 1) {',
+        '    si (i == 3) { break; }',
+        '    i;',
+        '}',
+        '',
+        '"--- Continue ---";',
+        'pour (laisser i = 0; i < 5; i = i + 1) {',
+        '    si (i == 2) { continue; }',
+        '    i;',
+        '}',
+        '',
+        '"--- Concatenação mista ---";',
+        'laisser prefixo = "Número: ";',
+        'prefixo + 42;',
+        '',
+        '"--- Escopo ---";',
+        'laisser global = 10;',
+        '{',
+        '    laisser local = 20;',
+        '    "dentro: " + local;',
+        '}',
+        '"fora: " + global;',
+        '',
+        'constant PI = 3.14;',
+        'PI;',
+        '',
+        '"--- Expressões ---";',
+        '(10 + 5) * 2 - 8 / 4;',
+        '(5 > 3) et (10 < 20) ou non faux;',
+        '',
+        '"--- Fatorial de 5 ---";',
+        'laisser n = 5;',
+        'laisser fat = 1;',
+        'tantque (n > 0) {',
+        '    fat = fat * n;',
+        '    n = n - 1;',
+        '}',
+        '"Fatorial: " + fat;',
+        '',
+        '"--- Todos os testes concluídos com sucesso! ---";'
+    ]
+
+    comando = f'bash -c "nano {script_path}; echo; ./purplekai {script_path}; read -p \'Pressione Enter para fechar...\'"'
+
+    if term == "kitty":
+        proc = subprocess.Popen(["kitty", "--working-directory", os.getcwd(), "-e", "bash", "-c", comando])
+    elif term == "alacritty":
+        proc = subprocess.Popen(["alacritty", "--working-directory", os.getcwd(), "-e", "bash", "-c", comando])
+    elif term == "ghostty":
+        proc = subprocess.Popen(["ghostty", "--working-directory", os.getcwd(), "--exec", "bash", "-c", comando])
+    elif term == "gnome-terminal":
+        proc = subprocess.Popen(["gnome-terminal", "--working-directory", os.getcwd(), "--", "bash", "-c", comando])
+    else:  # fallback xterm
+        proc = subprocess.Popen(["xterm", "-e", "bash", "-c", comando])
+
+    time.sleep(2)  # Aguarda o nano abrir
+    digitar_no_nano(linhas, intervalo_base, variacao)
+    
+    try:
+        proc.wait()
+    except KeyboardInterrupt:
+        print_step("Demonstração interrompida.", "warning")
+
+def main():
+    parser = argparse.ArgumentParser(description="PurpleKai Demonstração Ao Vivo (digitação em nano)")
+    parser.add_argument("--live", action="store_true", help="Modo ao vivo: abre nano e digita o código")
+    parser.add_argument("--velocidade", type=str, default="normal", choices=["lento", "normal", "rapido"],
+                        help="Velocidade da digitação (lento, normal, rapido)")
+    args = parser.parse_args()
+
+    print(BANNER)
+    if args.live:
+        print_step(f"Iniciando demonstração ao vivo (velocidade: {args.velocidade})...", "info")
+        executar_ao_vivo(args.velocidade)
+    else:
+        print_step("Use --live para iniciar a demonstração com digitação ao vivo.", "info")
+
+if __name__ == "__main__":
+    main()
+
+===== demo_live_nvim.py =====
+#!/usr/bin/env python3
+"""
+Script de demonstração profissional do PurpleKai - Modo Ao Vivo com Neovim
+Autor: Miguel Santana
+Descrição: Abre o nvim, digita o código linha por linha (simula codificação ao vivo)
+           com indentação adequada e executa o PurpleKai.
+"""
+
+import subprocess
+import os
+import sys
+import time
+import random
+import argparse
+
+# Cores para output
+GREEN = "\033[92m"
+BLUE = "\033[94m"
+YELLOW = "\033[93m"
+RED = "\033[91m"
+RESET = "\033[0m"
+
+BANNER = f"""
+{BLUE}╔══════════════════════════════════════════════════════════╗
+║                                                              ║
+║   ██╗   ██╗██████╗ ██╗   ██╗██████╗ ██╗     ███████╗       ║
+║   ██║   ██║██╔══██╗██║   ██║██╔══██╗██║     ██╔════╝       ║
+║   ██║   ██║██████╔╝██║   ██║██████╔╝██║     █████╗         ║
+║   ██║   ██║██╔══██╗██║   ██║██╔═══╝ ██║     ██╔══╝         ║
+║   ╚██████╔╝██║  ██║╚██████╔╝██║     ███████╗███████╗       ║
+║    ╚═════╝ ╚═╝  ╚═╝ ╚═════╝ ╚═╝     ╚══════╝╚══════╝       ║
+║                                                              ║
+║           PurpleKai - Demonstração Ao Vivo (nvim)           ║
+║                     v0.1.0 - Turing Complete                ║
+╚══════════════════════════════════════════════════════════════╝{RESET}
+"""
+
+def print_step(msg, status="info"):
+    symbols = {"info": "ℹ️", "ok": "✅", "error": "❌", "warning": "⚠️"}
+    color = {"info": BLUE, "ok": GREEN, "error": RED, "warning": YELLOW}
+    print(f"{color.get(status, RESET)}{symbols.get(status, '•')} {msg}{RESET}")
+
+def encontrar_terminal():
+    """Detecta um terminal gráfico (kitty, alacritty, ghostty, etc.)"""
+    terminais = ["kitty", "alacritty", "ghostty", "gnome-terminal", "xterm"]
+    for term in terminais:
+        if subprocess.run(["which", term], capture_output=True).returncode == 0:
+            return term
+    return None
+
+def digitar_no_nvim(conteudo_linhas, intervalo_base=0.2, variacao=0.1):
+    """
+    Envia texto linha por linha para o Neovim usando wtype.
+    - usa 'Return' para Enter
+    - usa 'Escape' ou '\\x1b' para sair do modo de inserção
+    - evita opções não suportadas (-kp)
+    """
+    time.sleep(1.5)
+    # Entrar em modo de inserção
+    subprocess.run(["wtype", "i"])
+    time.sleep(0.5)
+
+    for idx, linha in enumerate(conteudo_linhas):
+        if idx > 0:
+            pausa = intervalo_base + random.uniform(-variacao, variacao)
+            time.sleep(max(0.1, pausa))
+        
+        if linha.strip() == "":
+            # Linha vazia: apenas Enter
+            subprocess.run(["wtype", "-k", "Return"])
+        else:
+            # Digitar o texto da linha
+            subprocess.run(["wtype", linha])
+            if linha.rstrip().endswith(';'):
+                time.sleep(0.15)   # pausa extra após ponto e vírgula
+            time.sleep(0.05)
+            # Enter para próxima linha
+            subprocess.run(["wtype", "-k", "Return"])
+    
+    # Sair do modo de inserção (Escape)
+    time.sleep(0.3)
+    subprocess.run(["wtype", "-k", "Escape"])   # se falhar, tente "\\x1b"
+    time.sleep(0.5)
+    # Salvar e sair do Neovim
+    subprocess.run(["wtype", ":wq"])
+    time.sleep(0.2)
+    subprocess.run(["wtype", "-k", "Return"])
+    time.sleep(0.5)
+
+def executar_ao_vivo(velocidade="normal"):
+    velocidades = {
+        "lento": (0.4, 0.15),
+        "normal": (0.2, 0.1),
+        "rapido": (0.1, 0.05)
+    }
+    intervalo_base, variacao = velocidades.get(velocidade, (0.2, 0.1))
+
+    term = encontrar_terminal()
+    if not term:
+        print_step("Nenhum terminal gráfico encontrado.", "error")
+        sys.exit(1)
+    print_step(f"Usando terminal: {term} (velocidade: {velocidade})", "info")
+
+    script_path = os.path.join(os.getcwd(), "teste_completo.pk")
+
+    # Conteúdo linha a linha (exatamente como deve ser digitado)
+    linhas = [
+        'laisser a = 10;',
+        'laisser b = 20;',
+        'laisser soma = a + b;',
+        '"Resultado: " + soma;',
+        '',
+        'si (soma > 25) {',
+        '    "Maior que 25";',
+        '} sinon {',
+        '    "Menor ou igual a 25";',
+        '}',
+        '',
+        '"--- Loop pour ---";',
+        'pour (laisser i = 0; i < 3; i = i + 1) {',
+        '    "Valor de i: " + i;',
+        '}',
+        '',
+        '"--- Loop tantque ---";',
+        'laisser x = 3;',
+        'tantque (x > 0) {',
+        '    "x = " + x;',
+        '    x = x - 1;',
+        '}',
+        '',
+        '"--- Break ---";',
+        'pour (laisser i = 0; i < 5; i = i + 1) {',
+        '    si (i == 3) { break; }',
+        '    i;',
+        '}',
+        '',
+        '"--- Continue ---";',
+        'pour (laisser i = 0; i < 5; i = i + 1) {',
+        '    si (i == 2) { continue; }',
+        '    i;',
+        '}',
+        '',
+        '"--- Concatenação mista ---";',
+        'laisser prefixo = "Número: ";',
+        'prefixo + 42;',
+        '',
+        '"--- Escopo ---";',
+        'laisser global = 10;',
+        '{',
+        '    laisser local = 20;',
+        '    "dentro: " + local;',
+        '}',
+        '"fora: " + global;',
+        '',
+        'constant PI = 3.14;',
+        'PI;',
+        '',
+        '"--- Expressões ---";',
+        '(10 + 5) * 2 - 8 / 4;',
+        '(5 > 3) et (10 < 20) ou non faux;',
+        '',
+        '"--- Fatorial de 5 ---";',
+        'laisser n = 5;',
+        'laisser fat = 1;',
+        'tantque (n > 0) {',
+        '    fat = fat * n;',
+        '    n = n - 1;',
+        '}',
+        '"Fatorial: " + fat;',
+        '',
+        '"--- Todos os testes concluídos com sucesso! ---";'
+    ]
+
+    comando = f'bash -c "nvim {script_path}; echo; ./purplekai {script_path}; read -p \'Pressione Enter para fechar...\'"'
+
+    if term == "kitty":
+        proc = subprocess.Popen(["kitty", "--working-directory", os.getcwd(), "-e", "bash", "-c", comando])
+    elif term == "alacritty":
+        proc = subprocess.Popen(["alacritty", "--working-directory", os.getcwd(), "-e", "bash", "-c", comando])
+    elif term == "ghostty":
+        proc = subprocess.Popen(["ghostty", "--working-directory", os.getcwd(), "--exec", "bash", "-c", comando])
+    elif term == "gnome-terminal":
+        proc = subprocess.Popen(["gnome-terminal", "--working-directory", os.getcwd(), "--", "bash", "-c", comando])
+    else:  # fallback xterm
+        proc = subprocess.Popen(["xterm", "-e", "bash", "-c", comando])
+
+    time.sleep(2)  # Aguarda o nvim abrir
+    digitar_no_nvim(linhas, intervalo_base, variacao)
+    
+    try:
+        proc.wait()
+    except KeyboardInterrupt:
+        print_step("Demonstração interrompida.", "warning")
+
+def main():
+    parser = argparse.ArgumentParser(description="PurpleKai Demonstração Ao Vivo (digitação em nvim)")
+    parser.add_argument("--live", action="store_true", help="Modo ao vivo: abre nvim e digita o código")
+    parser.add_argument("--velocidade", type=str, default="normal", choices=["lento", "normal", "rapido"],
+                        help="Velocidade da digitação (lento, normal, rapido)")
+    args = parser.parse_args()
+
+    print(BANNER)
+    if args.live:
+        print_step(f"Iniciando demonstração ao vivo com Neovim (velocidade: {args.velocidade})...", "info")
+        executar_ao_vivo(args.velocidade)
+    else:
+        print_step("Use --live para iniciar a demonstração com digitação ao vivo.", "info")
+
+if __name__ == "__main__":
+    main()
+
