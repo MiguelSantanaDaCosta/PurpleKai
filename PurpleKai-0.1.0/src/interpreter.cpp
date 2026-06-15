@@ -320,7 +320,6 @@ std::string Interpreter::stringify(const Value& value) {
         case ValueType::NIL: return "nul";
         case ValueType::BOOL: return std::get<bool>(value.data) ? "vrai" : "faux";
         case ValueType::NUMBER: return std::to_string(std::get<int>(value.data));
-        case ValueType::FLOAT: return std::to_string(std::get<double>(value.data));
         case ValueType::STRING: return std::get<std::string>(value.data);
         default: return "[object]";
     }
